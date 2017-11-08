@@ -7,7 +7,7 @@ Assumes an already-created network dataset. (See NetworkAnalyst-Setup.txt for in
 Created on Mon Oct 23 11:44:44 2017
 
 @author: David Bucklin and Kirsten Hazler
-Last edit: 2017-10-27 (krh)
+Last edit: 2017-11-08 (krh)
 """
 
 
