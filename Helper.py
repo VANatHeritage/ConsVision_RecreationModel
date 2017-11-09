@@ -120,8 +120,13 @@ def JoinFields(ToTab, fldToJoin, FromTab, fldFromJoin, addFields):
       arcpy.CalculateField_management (ToTab, fld, expression, 'PYTHON', codeblock)
    return ToTab
    
-def SpatialCluster (inFeats, fldID, searchDist):
-   '''Clusters features based on specified search distance. Features within twice the search distance of each other will be assigned to the same group.'''
+def SpatialCluster (inFeats, fldID, searchDist, fldGrpID = 'grpID'):
+   '''Clusters features based on specified search distance. Features within twice the search distance of each other will be assigned to the same group.
+   inFeats = The input features to group
+   fldID = The field containing unique feature IDs in inFeats
+   searchDist = The search distance to use for clustering. This should be half of the max distance allowed to include features in the same cluster. E.g., if you want features within 500 m of each other to cluster, enter "250 METERS"
+   fldGrpID = The desired name for the output grouping field. If not specified, it will be "grpID".'''
+   
    # Initialize trash items list
    trashList = []
    
@@ -138,9 +143,9 @@ def SpatialCluster (inFeats, fldID, searchDist):
    trashList.append(explBuff)
    
    # Add and populate grpID field in buffers
-   printMsg('Adding and populating grpID field in buffers')
-   arcpy.AddField_management (explBuff, 'grpID', 'LONG')
-   arcpy.CalculateField_management (explBuff, 'grpID', '!OBJECTID!', 'PYTHON')
+   printMsg('Adding and populating grouping field in buffers')
+   arcpy.AddField_management (explBuff, fldGrpID, 'LONG')
+   arcpy.CalculateField_management (explBuff, fldGrpID, '!OBJECTID!', 'PYTHON')
    
    # Spatial join buffers with input features
    printMsg('Performing spatial join between buffers and input features')
@@ -149,10 +154,11 @@ def SpatialCluster (inFeats, fldID, searchDist):
    trashList.append(joinFeats)
    
    # Join grpID field to input features
-   JoinFields(inFeats, fldID, joinFeats, 'TARGET_FID', ['grpID'])
+   # This employs a custom function because arcpy is stupid slow at this
+   JoinFields(inFeats, fldID, joinFeats, 'TARGET_FID', [fldGrpID])
    
    # Cleanup: delete buffers, spatial join features
-   # garbagePickup(trashList)
+   garbagePickup(trashList)
    
    printMsg('Processing complete.')
    
@@ -183,12 +189,13 @@ def unique_values(table, field):
 
 def main():
    # Set up variables
-   inFeats = r'C:\Testing\ConsVisionRecMod\TerrestrialFacilities.shp'
+   inFeats = r'E:\ConsVision_RecMod\Terrestrial\Input\TerrestrialFacilities.shp'
    fldID =  'FID'
-   searchDist = '2500 METERS'
+   searchDist = '250 METERS'
+   fldGrpID = 'grpID_500m'
    
    # Specify function to run
-   SpatialCluster (inFeats, fldID, searchDist)
+   SpatialCluster (inFeats, fldID, searchDist, fldGrpID)
 
 if __name__ == '__main__':
    main()

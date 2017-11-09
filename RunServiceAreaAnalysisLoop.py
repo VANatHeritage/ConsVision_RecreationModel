@@ -44,7 +44,7 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, fld_grpID, outDir
 
    # Initialize variables and settings for analysis
    # Output files/folders (creates new folder with outputNALayerName in outputFolder)
-   outputFolder = outDirectory + os. sep + "na_ServArea" + os. sep + "output"
+   outputFolder = outDirectory + os. sep + "na_ServArea" 
    newdir = outputFolder + os.sep + outNALayerName
    if not os.path.exists(newdir):
        os.makedirs(newdir)
@@ -177,7 +177,7 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, fld_grpID, outDir
 
    if len(myFailList) > 0:
       num_Fails = len(myFailList)
-      printMsg('\nProcess complete, but the following %s facility IDs failed: %s.' % (str(num_Fails), str(myFailList)))
+      printMsg('\nProcess complete, but the following %s facility groups failed: %s.' % (str(num_Fails), str(myFailList)))
 
    # End the timer
    t4 = datetime.now()
@@ -195,7 +195,7 @@ def main():
    inNetworkDataset = r'E:\ConsVision_RecMod\RCL_Network.gdb\RCL\RCL_ND'
    inFacilities = r'E:\ConsVision_RecMod\Terrestrial\Input\TerrestrialFacilities.shp'
    fld_facID = 'FID'
-   fld_grpID = 'grpID'
+   fld_grpID = 'grpID_500m'
    outDirectory = r'E:\ConsVision_RecMod\Terrestrial\Output'
    outNALayerName = "terrestrial"
    
