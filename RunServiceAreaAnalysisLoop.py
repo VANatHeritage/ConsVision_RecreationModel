@@ -7,7 +7,7 @@ Assumes an already-created network dataset. (See NetworkAnalyst-Setup.txt for in
 Created on Mon Oct 23 11:44:44 2017
 
 @author: David Bucklin and Kirsten Hazler
-Last edit: 2017-11-08 (krh)
+Last edit: 2017-11-09 (krh)
 """
 
 
@@ -19,11 +19,12 @@ from arcpy import env
 # Check out the Network Analyst extension license
 arcpy.CheckOutExtension("Network")
 
-def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, outDirectory, outNALayerName):
+def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, fld_grpID, outDirectory, outNALayerName):
    '''Creates a set of Service Areas based on 30-minute drive time to recreation facilities.
    inNetworkDataset = The network dataset used to determine drive times
    inFacilities = The point feature class representing access points to recreational opportunities
-   fld_facID = The field in inFacilities used to identify unique clusters of recreational opportunities
+   fld_facID = The field in inFacilities containing a unique ID for each point
+   fld_grpID = The field in inFacilities used to identify grouped clusters of recreational opportunities
    outDirectory = The directory in which outputs will be stored
    outNALayerName = The name of the output Network Analyst layer'''
 
@@ -55,13 +56,6 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, outDirectory, out
    outLayerFile = outputFolder + os.sep + outNALayerName + ".lyr"
    outGDB = outputFolder + os.sep + outNALayerName + ".gdb"
    arcpy.CreateFileGDB_management(outputFolder, outNALayerName + ".gdb")
-
-# # Definition query for facilities layer
-# arcpy.MakeFeatureLayer_management(inFacilities,"fac")
-# lyr_fac = arcpy.mapping.Layer("fac")
-# valString = ((str(valList)).replace('[', '(')).replace(']', ')')
-# defQuery = '"%s" in %s' %(fld, valString)
-# lyr_fac.definitionQuery = defQuery
 
    # Field map for facilities (to assign unique ID from source data)
    fldMap = "Name %s #" % fld_facID
@@ -109,7 +103,7 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, outDirectory, out
    # Facilities with the same unique ID are processed together as a group.
 
    # Get the set of unique IDs, and count
-   id_List = unique_values(inFacilities, fld_facID)
+   id_List = unique_values(inFacilities, fld_grpID)
    id_Count = len(id_List)
    printMsg('There are %s facility groups to process' % str(id_Count))
 
@@ -121,12 +115,15 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, outDirectory, out
 
    # Loop through the individual facilities
    for id in id_List:
-      printMsg("\nWorking on facility group %s, with ID = %s" %(myIndex, id))
+      printMsg("\nWorking on facility group %s, with ID = %s" %(myIndex, str(id)))
 
       try: 
          # Select the facilities
          arcpy.env.workspace = "in_memory"
-         selQry = fld_facID + " = '%s'" % id 
+         if isinstance(id, str):
+            selQry = fld_grpID + " = '%s'" % id 
+         else:
+            selQry = fld_grpID + " = %s" % str(id) 
          arcpy.Select_analysis (inFacilities, "tmp_fac", selQry)
          num_pts = countFeatures("tmp_fac")
          printMsg('There are %s location points in this group.' % str(num_pts))
@@ -166,13 +163,13 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, outDirectory, out
          # Save the facilities, lines, and polygons features to disk
          arcpy.env.workspace = outGDB
          printMsg('Copying output features to disk...')
-         arcpy.CopyFeatures_management(in_features=arcpy.mapping.ListLayers(outNALayer, 'Facilities')[0],out_feature_class="Facilities_" + id)
-         arcpy.CopyFeatures_management(in_features=arcpy.mapping.ListLayers(outNALayer, 'Lines')[0],out_feature_class="Lines_" + id)
-         arcpy.CopyFeatures_management(in_features=arcpy.mapping.ListLayers(outNALayer, 'Polygons')[0],out_feature_class="Polygons_" + id)
+         arcpy.CopyFeatures_management(in_features=arcpy.mapping.ListLayers(outNALayer, 'Facilities')[0],out_feature_class="Facilities_" + str(id))
+         arcpy.CopyFeatures_management(in_features=arcpy.mapping.ListLayers(outNALayer, 'Lines')[0],out_feature_class="Lines_" + str(id))
+         arcpy.CopyFeatures_management(in_features=arcpy.mapping.ListLayers(outNALayer, 'Polygons')[0],out_feature_class="Polygons_" + str(id))
          t3 = datetime.now()
          printMsg('Finished copy at %s. Process complete.' % str(t3))
       except:
-         printMsg('Failed for %s' % id)
+         printMsg('Failed for %s' % str(id))
          tbackInLoop()
          myFailList.append(id)
       finally:
@@ -195,14 +192,15 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, outDirectory, out
 
 def main():
    # Set up variables
-   inNetworkDataset = r'C:\Testing\ConsVisionRecMod\rec_model\na_final\RCL_Network.gdb\RCL\RCL_ND'
-   inFacilities = r'C:\Testing\ConsVisionRecMod\rec_model\model_input_recfacilities\all_facil.shp'
-   fld_facID = 'grpID'
-   outDirectory = r'C:\Testing\ConsVisionRecMod\Statewide'
-   outNALayerName = "trlHds"
+   inNetworkDataset = r'E:\ConsVision_RecMod\RCL_Network.gdb\RCL\RCL_ND'
+   inFacilities = r'E:\ConsVision_RecMod\Terrestrial\Input\TerrestrialFacilities.shp'
+   fld_facID = 'FID'
+   fld_grpID = 'grpID'
+   outDirectory = r'E:\ConsVision_RecMod\Terrestrial\Output'
+   outNALayerName = "terrestrial"
    
    # Specify function to run
-   RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, outDirectory, outNALayerName)
+   RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, fld_grpID, outDirectory, outNALayerName)
 
 if __name__ == '__main__':
    main()
