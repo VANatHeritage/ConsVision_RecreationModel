@@ -192,11 +192,11 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, fld_grpID, outDir
 
 def main():
    # Set up variables
-   inNetworkDataset = r'E:\ConsVision_RecMod\RCL_Network.gdb\RCL\RCL_ND'
-   inFacilities = r'E:\ConsVision_RecMod\Terrestrial\Input\TerrestrialFacilities.shp'
+   inNetworkDataset = r'C:\Testing\ConsVisionRecMod\rec_model\na_final\RCL_Network.gdb\RCL\RCL_ND'
+   inFacilities = r'C:\Testing\ConsVisionRecMod\TestSubset.shp'
    fld_facID = 'FID'
-   fld_grpID = 'grpID_500m'
-   outDirectory = r'E:\ConsVision_RecMod\Terrestrial\Output'
+   fld_grpID = 'grpID'
+   outDirectory = r'C:\Testing\ConsVisionRecMod\Subsets\TestOutput'
    outNALayerName = "terrestrial"
    
    # Specify function to run
