@@ -7,7 +7,7 @@ Assumes an already-created network dataset. (See NetworkAnalyst-Setup.txt for in
 Created on Mon Oct 23 11:44:44 2017
 
 @author: David Bucklin and Kirsten Hazler
-Last edit: 2017-11-09 (krh)
+Last edit: 2017-11-13 (krh)
 """
 
 
@@ -119,7 +119,7 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, fld_grpID, outDir
 
       try: 
          # Select the facilities
-         arcpy.env.workspace = "in_memory"
+         arcpy.env.workspace = outGDB # Don't use in_memory or scratchGDB to avoid write conflicts
          if isinstance(id, str):
             selQry = fld_grpID + " = '%s'" % id 
          else:
@@ -149,8 +149,7 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, fld_grpID, outDir
          printMsg('Solving...')
          arcpy.na.Solve(outNALayer,
             ignore_invalids="SKIP",
-            terminate_on_solve_error="TERMINATE",
-            simplification_tolerance="100 meters")
+            terminate_on_solve_error="CONTINUE")
          t2 = datetime.now()
          
          # Messaging
@@ -193,10 +192,10 @@ def RecServiceAreas(inNetworkDataset, inFacilities, fld_facID, fld_grpID, outDir
 def main():
    # Set up variables
    inNetworkDataset = r'E:\ConsVision_RecMod\RCL_Network.gdb\RCL\RCL_ND'
-   inFacilities = r'E:\ConsVision_RecMod\Terrestrial\Input\TerrestrialFacilities.shp'
+   inFacilities = r'E:\ConsVision_RecMod\Terrestrial\Input\TerrestrialFacilities2501_3000.shp'
    fld_facID = 'FID'
    fld_grpID = 'grpID_500m'
-   outDirectory = r'E:\ConsVision_RecMod\Terrestrial\Output'
+   outDirectory = r'E:\ConsVision_RecMod\Terrestrial\Output2501_3000'
    outNALayerName = "terrestrial"
    
    # Specify function to run
