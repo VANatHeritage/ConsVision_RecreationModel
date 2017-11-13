@@ -2,7 +2,7 @@
 # RecRastFromPolys.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2017-10-27
-# Last Edit: 2017-11-06
+# Last Edit: 2017-11-09
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -13,32 +13,19 @@
 #--------------------------------------------------------------------------------------
 
 
-##################### User Options #####################
-
-# Input Data: 
-# geodatabase containing polygons
-inGDB = r'C:\Testing\ConsVisionRecMod\Statewide\na_ServArea\output\trlHds\trlHds.gdb' 
-# template raster to set cell size and alignment
-inSnap = r'C:\Testing\ConsVisionRecMod\Statewide\cs_TrvTm_2011_lam.tif'
-
-# Output Data
-outDir = r'C:\Testing\ConsVisionRecMod\Statewide\na_ServArea\output\trlHds'
-
-
-################### End User Options ###################
-
-
 # Import Helper module and functions
 import Helper
 from Helper import *
 from arcpy import env
 
 
-def RecRastFromPolys(inGDB, inSnap, outDir):
-   '''Creates a summary raster from a set of Network Analyst Service Area polygons.
-   inGDB = geodatabase containing input polygon feature classes
-   inSnap = template raster to set cell size and alignment
-   outDir = directory to contain outputs'''
+def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir):
+   '''Creates a summary raster from a set of Network Analyst Service Area polygons. These must have been first generated with the "RecServiceAreas" function.
+   inGDB = Input geodatabase containing service area polygons
+   inFacilities = Feature class with points used to generate service area polygons
+   fld_area = The field in inFacilities containing the area of the public lands polygon associated with each point
+   inSnap = Input Template raster used to set cell size and alignment
+   outDir = Directory to contain outputs'''
    
    # Apply environment settings
    arcpy.env.snapRaster = inSnap
@@ -63,12 +50,20 @@ def RecRastFromPolys(inGDB, inSnap, outDir):
    sumRast = outFolder + os.sep + 'sum.tif'
    tmpRast = outFolder + os.sep + 'tmp.tif'
 
+   # Define a function for converting area (assumed in hectares) to scores
+   def ScoreArea(area):
+      import math
+      score = 25*math.log(area + 2, 10)
+      if score > 100:
+         score = 100
+      return score
+   
    # Create running zeros and running sum rasters
    if arcpy.Exists(zeroRast):
       printMsg('Zero raster already exists. Proceeding to next step...')
    else:
       printMsg('Initializing running sum raster with zeros...')
-      zeros = CreateConstantRaster(0)
+      zeros = CreateConstantRaster(0.0)
       zeros.save(zeroRast)
       printMsg('Zero raster created.')
    arcpy.CopyRaster_management (zeroRast, sumRast)
@@ -90,11 +85,32 @@ def RecRastFromPolys(inGDB, inSnap, outDir):
    for poly in inPolys:
       try:
          printMsg('Working on polygon %s' % str(myIndex))
-         # Add and populate value field with 1
+         t1 = datetime.now()
+         
+         # Extract the group ID from the feature class names
+         id = poly.replace('Polygons_', '')
+         
+         # Get the corresponding Facilities feature class
+         # Subset to include only those used to generate service area
+         facPts = inGDB + os.sep + 'Facilities_' + id
+         where_clause = "Status = 0" # Status is 'OK'
+         arcpy.MakeFeatureLayer_management (facPts, 'lyrPts', where_clause)
+
+         # Perform a spatial join to get the full attributes
+         arcpy.SpatialJoin_analysis ('lyrPts', inFacilities, 'tmpPts', 'JOIN_ONE_TO_ONE', 'KEEP_COMMON', '', 'ARE_IDENTICAL_TO')
+         
+         # Sum the areas of polygons represented by points
+         areas = unique_values('tmpPts', fld_area)
+         SumArea = sum(areas)
+         
+         # Get score for area
+         score = ScoreArea(SumArea)
+         
+         # Add and populate value field with score
          printMsg('Adding and populating raster value field...')
          poly = inGDB + os.sep + poly
-         arcpy.AddField_management (poly, 'val', 'SHORT')
-         arcpy.CalculateField_management (poly, 'val', 1, 'PYTHON')
+         arcpy.AddField_management (poly, 'val', 'DOUBLE')
+         arcpy.CalculateField_management (poly, 'val', score, 'PYTHON')
          
          # Convert to raster
          printMsg('Converting to raster...')
@@ -106,8 +122,12 @@ def RecRastFromPolys(inGDB, inSnap, outDir):
          arcpy.env.extent = inSnap
          newSum = CellStatistics ([sumRast, tmpRast], "SUM", "DATA")
          arcpy.CopyRaster_management (newSum, sumRast)
+         t2 = datetime.now()
          
          printMsg('Completed polygon %s' % str(myIndex))
+         deltaString = GetElapsedTime(t1, t2)
+         printMsg('Elapsed time: %s.' % deltaString)
+         
       except:
          printMsg('Processing for polygon %s failed.' % str(myIndex))
          tbackInLoop()
@@ -122,11 +142,11 @@ def RecRastFromPolys(inGDB, inSnap, outDir):
       printMsg('\nProcess complete, but the following %s facility IDs failed: %s.' % (str(num_Fails), str(myFailList)))
       
    # End the timer
-   t2 = datetime.now()
-   deltaString = GetElapsedTime(t0, t2)
+   t3 = datetime.now()
+   deltaString = GetElapsedTime(t0, t3)
    printMsg('All features completed: %s' % str(t2))
    printMsg('Total processing time: %s.' % deltaString)
-   printMsg('Your output sum raster is %s.' $ sumRast)
+   printMsg('Your output sum raster is %s.' % sumRast)
    
    return sumRast
 
@@ -135,10 +155,14 @@ def RecRastFromPolys(inGDB, inSnap, outDir):
 
 def main():
    # Set up variables
-
+   inGDB = r'C:\Testing\ConsVisionRecMod\Subsets\TestOutput\na_ServArea\terrestrial\terrestrial.gdb'
+   inFacilities = r'C:\Testing\ConsVisionRecMod\TestSubset.shp'
+   fld_area = 'plxu_area'
+   inSnap = r'C:\Testing\ConsVisionRecMod\Statewide\cs_TrvTm_2011_lam.tif'
+   outDir = r'C:\Testing\ConsVisionRecMod\Subsets\TestOutput\na_ServArea\terrestrial'
    
    # Specify function to run
-   printMsg('This function does nothing at the moment')
+   RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir)
 
 if __name__ == '__main__':
    main()
