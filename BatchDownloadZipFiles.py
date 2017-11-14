@@ -69,7 +69,7 @@ def BatchDownloadZips(in_tab, in_fld, out_dir, ftpHOST, ftpDIR, pre = '', suf = 
    Log = open(ProcLogFile, 'w+') 
    FORMAT = '%Y-%m-%d %H:%M:%S'
    timestamp = datetime.now().strftime(FORMAT)
-   Log.write("Process logging started %s" % timestamp)
+   Log.write("Process logging started %s \n" % timestamp)
 
    # Initialize lists
    FileList = list() # List to hold filenames
@@ -90,7 +90,7 @@ def BatchDownloadZips(in_tab, in_fld, out_dir, ftpHOST, ftpDIR, pre = '', suf = 
 
    try:
       ftp = ftplib.FTP(ftpHOST)
-      msg = "CONNECTED TO HOST '%s' \n" % ftpHOST
+      msg = "\nCONNECTED TO HOST '%s' \n" % ftpHOST
       print msg
       Log.write(msg)
    except (socket.error, socket.gaierror) as e:
