@@ -2,7 +2,7 @@
 # RecRastFromPolys.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2017-10-27
-# Last Edit: 2017-11-09
+# Last Edit: 2017-11-14
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -19,7 +19,7 @@ from Helper import *
 from arcpy import env
 
 
-def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir):
+def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir, zeroRast = ''):
    '''Creates a summary raster from a set of Network Analyst Service Area polygons. These must have been first generated with the "RecServiceAreas" function.
    inGDB = Input geodatabase containing service area polygons
    inFacilities = Feature class with points used to generate service area polygons
@@ -46,9 +46,9 @@ def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir):
    printMsg('Processing started: %s' % str(t0))
 
    # Set up some output variables
-   zeroRast = outFolder + os.sep + 'zeros.tif'
+   if zeroRast == '':
+      zeroRast = outFolder + os.sep + 'zeros.tif'
    sumRast = outFolder + os.sep + 'sum.tif'
-   tmpRast = outFolder + os.sep + 'tmp.tif'
 
    # Define a function for converting area (assumed in hectares) to scores
    def ScoreArea(area):
@@ -66,8 +66,6 @@ def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir):
       zeros = CreateConstantRaster(0.0)
       zeros.save(zeroRast)
       printMsg('Zero raster created.')
-   arcpy.CopyRaster_management (zeroRast, sumRast)
-   printMsg('Running sum raster created.')
 
    # Get the list of polygon feature classes in the input GDB
    arcpy.env.workspace = inGDB
@@ -78,17 +76,18 @@ def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir):
    # Initialize counter
    myIndex = 1 
 
-   # Initialize empty list to store IDs of facility groups that fail to get processed
-   myFailList = []
+   # Initialize lists 
+   myFailList = [] # to store IDs of facility groups that fail to get processed
+   myRastList = [zeroRast] # to store paths to rasters to be summed
 
    # Loop through the polygons, creating rasters and updating running sum raster
    for poly in inPolys:
       try:
-         printMsg('Working on polygon %s' % str(myIndex))
          t1 = datetime.now()
          
          # Extract the group ID from the feature class names
          id = poly.replace('Polygons_', '')
+         printMsg('Working on polygon %s with ID %s' % (str(myIndex), str(id)))
          
          # Get the corresponding Facilities feature class
          # Subset to include only those used to generate service area
@@ -112,39 +111,51 @@ def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir):
          arcpy.AddField_management (poly, 'val', 'DOUBLE')
          arcpy.CalculateField_management (poly, 'val', score, 'PYTHON')
          
-         # Convert to raster
+         # Convert to raster and save
          printMsg('Converting to raster...')
          arcpy.env.extent = poly
+         tmpRast = outFolder + os.sep + 'tmp%s.tif' % str(id) 
          arcpy.PolygonToRaster_conversion (poly, 'val', tmpRast, 'MAXIMUM_COMBINED_AREA')
-         
-         # Add to running sum raster and save
-         printMsg('Adding to running sum raster...')
-         arcpy.env.extent = inSnap
-         newSum = CellStatistics ([sumRast, tmpRast], "SUM", "DATA")
-         arcpy.CopyRaster_management (newSum, sumRast)
          t2 = datetime.now()
          
-         printMsg('Completed polygon %s' % str(myIndex))
+         myRastList.append(tmpRast)
+         printMsg('Completed polygon %s with ID %s' % (str(myIndex), str(id)))
          deltaString = GetElapsedTime(t1, t2)
          printMsg('Elapsed time: %s.' % deltaString)
          
       except:
-         printMsg('Processing for polygon %s failed.' % str(myIndex))
+         printMsg('Processing for polygon %s failed.' % str(id))
          tbackInLoop()
          myFailList.append
+         
       finally:
          t1 = datetime.now()
-         printMsg('Processing for polygon %s ended at %s' % (str(myIndex), str(t1)))
+         printMsg('Processing for polygon %s ended at %s' % (str(id), str(t1)))
          myIndex += 1
          
    if len(myFailList) > 0:
       num_Fails = len(myFailList)
       printMsg('\nProcess complete, but the following %s facility IDs failed: %s.' % (str(num_Fails), str(myFailList)))
-      
+   
+   # Add rasters to create summation raster and save
+   printMsg('Summing all rasters. This will take awhile...')
+   arcpy.env.extent = inSnap
+   t1 = datetime.now()
+   newSum = CellStatistics (myRastList, "SUM", "DATA")
+   arcpy.CopyRaster_management (newSum, sumRast)   
+   t2 = datetime.now()
+   deltaString = GetElapsedTime(t1, t2)
+   printMsg('Time elapsed to sum and save final output: %s.' % deltaString)
+   
+   # Cleanup
+   printMsg('Deleting temporary rasters...')
+   myRastList.remove(zeroRast)
+   garbagePickup(myRastList)
+   
    # End the timer
-   t3 = datetime.now()
-   deltaString = GetElapsedTime(t0, t3)
-   printMsg('All features completed: %s' % str(t2))
+   t2 = datetime.now()
+   deltaString = GetElapsedTime(t0, t2)
+   printMsg('All processing completed: %s' % str(t2))
    printMsg('Total processing time: %s.' % deltaString)
    printMsg('Your output sum raster is %s.' % sumRast)
    
@@ -155,14 +166,15 @@ def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir):
 
 def main():
    # Set up variables
-   inGDB = r'C:\Testing\ConsVisionRecMod\Subsets\TestOutput\na_ServArea\terrestrial\terrestrial.gdb'
-   inFacilities = r'C:\Testing\ConsVisionRecMod\TestSubset.shp'
+   inGDB = r'E:\ConsVision_RecMod\Terrestrial\OutputRemnants\na_ServArea\terrestrial\terrestrial.gdb'
+   inFacilities = r'E:\ConsVision_RecMod\Terrestrial\Input\TerrestrialFacilities.shp'
    fld_area = 'plxu_area'
-   inSnap = r'C:\Testing\ConsVisionRecMod\Statewide\cs_TrvTm_2011_lam.tif'
-   outDir = r'C:\Testing\ConsVisionRecMod\Subsets\TestOutput\na_ServArea\terrestrial'
+   inSnap = r'E:\ConsVision_RecMod\Snap\cs_TrvTm_2011_lam.tif'
+   outDir = r'E:\ConsVision_RecMod\Terrestrial\OutputRemnants\na_ServArea\terrestrial'
+   zeroRast = r'E:\ConsVision_RecMod\Terrestrial\Output\na_ServArea\terrestrial\raster\zeros.tif'
    
    # Specify function to run
-   RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir)
+   RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir, zeroRast)
 
 if __name__ == '__main__':
    main()
