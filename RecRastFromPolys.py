@@ -85,7 +85,7 @@ def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir, zeroRast = '
 
    # Get the list of polygon feature classes in the input GDB
    arcpy.env.workspace = inGDB
-   inPolys = arcpy.ListFeatureClasses ('Polygons_7*', 'Polygon')
+   inPolys = arcpy.ListFeatureClasses ('', 'Polygon')
    numPolys = len(inPolys)
    printMsg('There are %s polygons to process.' % str(numPolys))
    Log.write('\nThere are %s polygons to process.' % str(numPolys))
