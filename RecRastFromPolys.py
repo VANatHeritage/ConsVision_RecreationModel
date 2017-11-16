@@ -162,7 +162,7 @@ def RecRastFromPolys(inGDB, inFacilities, fld_area, inSnap, outDir, zeroRast = '
          printMsg('Processing for polygon %s failed.' % str(id))
          Log.write('\nProcessing for polygon %s failed.' % str(id))
          tbackInLoop()
-         myFailList.append
+         myFailList.append(id)
          
       finally:
          t1 = datetime.now()
