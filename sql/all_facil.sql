@@ -761,7 +761,7 @@ WHERE a.all_facil_id in
 	(SELECT distinct all_facil_id FROM
 	facilities.all_facil_aqua a,
 	nhdplusv2.nhdarea b
-	where b.ftype in ('SeaOcean','BayInlet','ForeShore')
+	where b.ftype in ('SeaOcean','BayInlet','Foreshore')
 	and a.all_facil_id in (select all_facil_id from facilities.all_facil_aqua where plau_fid is null)
 	and (st_intersects(a.geom, st_transform(b.geom, 900914)) or st_dwithin(a.geom, st_transform(b.geom, 900914), 500))
 	);
