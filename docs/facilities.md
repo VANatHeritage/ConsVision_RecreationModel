@@ -6,6 +6,10 @@ Author: David Bucklin
 
 Date: 2017-11-17
 
+[TOC]
+
+
+
 ### Input data 
 
 *Recreation Input datasets*
@@ -150,7 +154,6 @@ All terrestrial facilities were input into table ***all\_facil***, which has the
 
 6.  Public beaches
 
-
     - included intersections with roads	
     - For public beaches still not included in all\_facil\_aqua, include the closest point on the beach line to road
 
@@ -158,7 +161,7 @@ All terrestrial facilities were input into table ***all\_facil***, which has the
 
 NHD "areas" were added to points not associated with a pub\_lands\_aqua\_union polygon. The following hierarchical method was used (a given point could only get associated through the first method that applied to it).
 
-1.  For a point within 500m of NHDArea polygons with ftype IN ('SeaOcean','BayInlet','ForeShore')
+1.  For a point within 500m of NHDArea polygons with ftype IN ('SeaOcean','BayInlet','Foreshore')
 
     - nhd\_farea = 10000
 

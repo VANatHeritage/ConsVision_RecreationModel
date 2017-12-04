@@ -341,7 +341,7 @@ CREATE TABLE facilities.all_facil_aqua
   road_dist double precision,
   use_why character varying,
   geom geometry(Point,900914),
-  CONSTRAINT afa_uniq_key UNIQUE (src_table, src_id, plau_fid, geom)
+  CONSTRAINT afa_uniq_key2 UNIQUE (src_table, src_id, plau_fid, geom)
 );
 
 -- public lands aqua (canoe only and public fishing lakes)
@@ -475,12 +475,12 @@ SELECT DISTINCT 'aqua', 'pub_lands_aqua_union', a.fid, a.fid, round(st_area(a.ge
 		and a.fid NOT IN (select distinct plau_fid from facilities.all_facil_aqua where plau_fid is not null) -- excludes lakes/aqua lands which are within 500m of access points
 		and b.mtfcc NOT IN ('S9999','S1710','S1720','S1740','S1820','S1830','S1500', -- excluded from analysis
 		'S1100','S1100HOV','S1640');
-select count(*) from facilities."all_facil_aqua_OLD11_17" where src_table = 'pub_lands_aqua_union' and use_why = 'boundary intersects road';
-select count(*) from facilities."all_facil_aqua" where src_table = 'pub_lands_aqua_union' and use_why = 'boundary intersects road';
+select count(*) from facilities.all_facil_aqua where src_table = 'pub_lands_aqua_union' and use_why = 'boundary intersects road';
+-- 32
 
 -- closest points for non-intersecting
-select distinct fid from rec_source.pub_lands_aqua_union where fid not in (select plau_fid from facilities.all_facil_aqua);
--- 103
+select distinct fid from rec_source.pub_lands_aqua_union where fid not in (select distinct plau_fid from facilities.all_facil_aqua where plau_fid is not null);
+-- 132
 delete from facilities.all_facil_aqua where src_table = 'pub_lands_aqua_union' and use_why = 'closest point on boundary to road';
 INSERT INTO facilities.all_facil_aqua (facil_code, src_table, src_id, plau_fid, plau_area, use_why, geom)
 SELECT DISTINCT ON (a.fid) 'aqua', 'pub_lands_aqua_union', a.fid, a.fid, round(st_area(a.geom)::numeric/10000,8),'closest point on boundary to road', st_closestpoint(st_transform(a.geom,900914), b.geom) geom FROM
@@ -509,7 +509,7 @@ SELECT DISTINCT ON (a.fid) 'aqua', 'pub_lands_aqua_union', a.fid, a.fid, round(s
 		AND b.mtfcc NOT IN ('S9999','S1710','S1720','S1740','S1820','S1830','S1500', -- excluded from analysis
 		'S1100','S1100HOV','S1640')
 		ORDER BY a.fid, ST_Distance(st_transform(a.geom,900914),b.geom) asc;
-select distinct fid from rec_source.pub_lands_aqua_union where fid not in (select plau_fid from facilities.all_facil_aqua);
+select distinct fid from rec_source.pub_lands_aqua_union where fid not in (select plau_fid from facilities.all_facil_aqua where plau_fid is not null);
 -- should be empty
 
 
@@ -536,7 +536,7 @@ SELECT DISTINCT a.facil_code, a.src_table, a.src_id, a.use_why, a.geom FROM
 	-- include only those falling within 500m of public lands/lakes
 	publand_union c
 	where (st_intersects(a.geom, c.geom) or st_dwithin(a.geom, c.geom, 500));
--- within distance incrementing	
+-- within distance incrementing	(this can take a while ~5-20 mins)
 INSERT INTO facilities.all_facil_aqua (facil_code, src_table, src_id, use_why, geom) 
 SELECT DISTINCT a.facil_code, a.src_table, a.src_id, a.use_why, a.geom FROM
 (SELECT DISTINCT ON (a.ogc_fid) 'aqua'::text as facil_code, 'stocked_trout_reaches'::text as src_table, a.ogc_fid as src_id, 'closest point on line to road'::text as use_why, st_closestpoint(st_transform(a.geom,900914), b.geom) geom FROM 	
@@ -577,12 +577,13 @@ SELECT DISTINCT a.facil_code, a.src_table, a.src_id, a.use_why, a.geom FROM
 	publand_union c
 	where (st_intersects(a.geom, c.geom) or st_dwithin(a.geom, c.geom, 500));
 select distinct ogc_fid from rec_source.stocked_trout_reaches where ogc_fid not in (select src_id from facilities.all_facil_aqua where src_table = 'stocked_trout_reaches');
--- 110 reaches excluded
+-- 110 reaches excluded since closest point to road not within public lands
 
 /* wild and scenic rivers
 1. Include intersections with roads
 2. for non-intersecting, include closest point
 3. exclude those not inside/within 500m of pub_lands_expl_union/pub_lands_aqua_union
+(this can take a while ~5-20 mins)
 */
 delete from facilities.all_facil_aqua where src_table = 'scenic_rivers';
 INSERT INTO facilities.all_facil_aqua (facil_code, src_table, src_id, use_why, geom) 
@@ -668,13 +669,22 @@ SELECT DISTINCT ON (a.ogc_fid) 'aqua', 'public_beaches', a.ogc_fid, 'closest poi
 
 -- count distinct src_ids by table
 select src_table, count(*) as total_for_table, count(distinct src_id) total_unique_for_table from facilities.all_facil_aqua group by src_table;
+/*
+"boat_access";236;236
+"bwt_sites";104;104
+"pub_lands_aqua_union";164;145
+"public_beaches";26;23
+"scenic_rivers";43;15
+"stocked_trout_reaches";491;242
+"water_access";330;330
+*/
 
 ---------
 -- post-processing aquatic facilities
 ALTER TABLE lookup.src_table ADD COLUMN table_code CHARACTER(4) UNIQUE;
+
 -- add codes manually
 -- update src_cid (combo table + ogc_fid ID)
-
 UPDATE facilities.all_facil_aqua a SET src_cid =
 	(SELECT b.table_code || '_' || lpad(a.src_id::text, 6, '0') FROM
 	lookup.src_table b
@@ -682,8 +692,9 @@ UPDATE facilities.all_facil_aqua a SET src_cid =
 	where src_cid is null; -- if just updating new points, leave this
 
 select count(*) from facilities.all_facil_aqua;
-
+-- 1394
 select * from facilities.all_facil_aqua where src_cid is null;
+
 -- update distance to closest road
 UPDATE facilities.all_facil_aqua a SET road_dist = 
 	(SELECT dist from
@@ -755,7 +766,9 @@ update facilities.all_facil_aqua set nhd_farea = NULL;
 update facilities.all_facil_aqua set nhd_why = NULL;
 
 -- Uploaded NHD tables using rpostgis in R
--- within 500m of sea or ocean, score = 10000
+
+-- within 500m of sea or ocean, farea score = 10000
+-- slow queries (2-5 min each)
 UPDATE facilities.all_facil_aqua a SET nhd_farea = 10000, nhd_why = 'within 500m of nhdArea SeaOcean type'
 WHERE a.all_facil_id in 
 	(SELECT distinct all_facil_id FROM
@@ -765,8 +778,7 @@ WHERE a.all_facil_id in
 	and a.all_facil_id in (select all_facil_id from facilities.all_facil_aqua where plau_fid is null)
 	and (st_intersects(a.geom, st_transform(b.geom, 900914)) or st_dwithin(a.geom, st_transform(b.geom, 900914), 500))
 	);
-
--- within 500m of large rivers, score = 100
+-- within 500m of large rivers, farea score = 100
 UPDATE facilities.all_facil_aqua a SET nhd_farea = 100, nhd_why = 'within 500m of nhdArea StreamRiver type'
 WHERE a.all_facil_id in 
 	(SELECT distinct a.all_facil_id FROM
@@ -786,7 +798,8 @@ WHERE a.all_facil_id in
 	and (st_intersects(a.geom, st_transform(b.geom, 900914)) or st_dwithin(a.geom, st_transform(b.geom, 900914), 500))
 	);
 
--- others, attach streamorder (values range 1-7), multiplied by 2
+-- others, attach streamorder (values range 1-7), multiplied by 2 (incrementing st_dwithin up to 500m)
+-- very slow (15-30 mins)
 UPDATE facilities.all_facil_aqua a SET nhd_farea = sub.streamorde * 2, nhd_why = sub.why
 FROM 
 	(SELECT distinct on (a.all_facil_id) all_facil_id, b.streamorde, 'streamorder of closest nhd reach' as why
@@ -813,6 +826,7 @@ and a.all_facil_id in (select all_facil_id from facilities.all_facil_aqua where 
 -- give remaining value of 0
 update facilities.all_facil_aqua a SET nhd_farea = 0, nhd_why = 'unassociated facility'
 WHERE a.all_facil_id in (select all_facil_id from facilities.all_facil_aqua where plau_fid is null and nhd_farea is null);
+-- 13 updated
 
 alter table facilities.all_facil_aqua add column comb_area double precision;
 
