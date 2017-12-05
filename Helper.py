@@ -199,6 +199,11 @@ def unique_values(table, field):
    with arcpy.da.SearchCursor(table, [field]) as cursor:
       return sorted({row[0] for row in cursor})
 
+def valToScoreNeg(inRast, minimum, maximum):
+   '''Given an input value raster, applies a negative function so that the model score at or below the minimum value is 100, 
+   with scores decreasing to 0 at the maximum value and beyond.'''
+   rast = Con(inRast <= minimum, 100, Con(inRast > maximum, 0, 100 * (maximum - inRast) / (maximum - minimum)))
+   return rast
 ##################################################################################################################
 # Use the main function below to run a function directly from Python IDE or command line with hard-coded variables
 
