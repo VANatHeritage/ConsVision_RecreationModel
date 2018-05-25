@@ -6,8 +6,6 @@ Author: David Bucklin
 
 Date: 2017-11-17
 
-Last updated: 2018-05-25
-
 [TOC]
 
 ### Input data 
@@ -229,3 +227,6 @@ The field 'comb_area' was the final area score given to the point.
 - Points with values in the column 'plau_area' were populated with that area
 - Points with values in the column 'nhd_farea' were populated with that "area" score
 
+---
+
+*Last updated: 2018-05-25*
