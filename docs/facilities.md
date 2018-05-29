@@ -53,11 +53,11 @@ From VGIN:
 All feature classes were entered into a PostgreSQL geodatabase without modification, with the exception of **publiclands\_wgs**. This dataset was split into two tables:
 
 -  *pub\_lands\_dissolve*, for terrestrial lands included the following "PUBACCESS" values: (open, open fee, open with restrictions, open/seasonal, weekends
-  - Exploded polygons were grouped if they were within 50m of one another
-  - this new table was named **pub\_lands\_expl\_union**
+  -  Exploded polygons were grouped if they were within 50m of one another
+  -  this new table was named **pub\_lands\_expl\_union**
 -  *pub\_lands\_dissolve\_aqua*, included "PUBACCESS" values: (Canoe only)
-  - In the database, pub\_lands\_dissolve\_aqua was merged with public fishing lakes, and all polygons in this set were grouped if they were within 50m of one another
-  - this new table was named **pub\_lands\_aqua\_union**
+  -  In the database, pub\_lands\_dissolve\_aqua was merged with public fishing lakes, and all polygons in this set were grouped if they were within 50m of one another
+  -  this new table was named **pub\_lands\_aqua\_union**
 
 ### Generating facilities from recreation datasets
 
@@ -104,7 +104,7 @@ All terrestrial facilities were input into table ***all\_facil***, which has the
     * Included BWT sites that were associated with an intersecting terrestrial public lands polygon, or the nearest one up to a distance of 500m
     * all remaining BWT sites were included as non-associated sites
 
-3. Public lands (pub\_lands\_expl\_union) [WORKING]
+3. Public lands (pub\_lands\_expl\_union)
 
     * For public lands polygons not associated with Trailheads or BWT sites layers, generated points at intersections with roads
 

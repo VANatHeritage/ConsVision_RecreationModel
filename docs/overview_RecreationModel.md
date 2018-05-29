@@ -54,7 +54,9 @@ This excludes driveways, walkways/ped. trails, stairways, service vehicle privat
 
 ## Generate recreational "facilities" (access points)
 
-In the **rec_model_source** database, a series of spatial SQL queries were executed to generate access points to use as *facilities* in the Service Area Analysis. The queries are found in the script [all_facil.sql](https://github.com/VANatHeritage/ConsVision_RecreationModel/blob/master/sql/all_facil.sql).
+In the **rec_model_source** database, a series of spatial SQL queries were executed to generate access points to use as *facilities* in the Service Area Analysis, and associate points with areas (Public Lands for terrestrial; Public fishing lakes, Canoe-only public lands, or NHD features for aquatic), based on intersection or distance to the area feature.
+
+The queries are found in the script [all_facil.sql](https://github.com/VANatHeritage/ConsVision_RecreationModel/blob/master/sql/all_facil.sql).
 
 Facilities were categorized as either **terrestrial** or **aquatic**, based on their primary recreational usage, or their location, if usage was uncertain (Birding and Wildlife trails). A full description of the workflow is found in the [facilities.md](./facilities.md) document. 
 
