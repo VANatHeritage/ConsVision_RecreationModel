@@ -2,14 +2,19 @@
 # WaterAccess.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2018-06-07
-# Last Edit: 2018-06-07
+# Last Edit: 2018-06-11
 # Creator:  Kirsten R. Hazler
 
 # Summary:
 # Functions for creating water access areas for Recreation Model. 
 # Requirements:
-# - A geodatabase containing a fully functional hydrologic network and associated NHD features (VA_HydroNet.gdb)
-# - A set of points representing water access. These may have been combined from multiple sources, and must already have been filtered to include only points with true water access.
+# - A geodatabase containing a fully functional hydrologic network and associated NHD features (VA_HydroNet.gdb). References to objects within this geodatabase are hard-coded.
+# - A set of points representing water access. These may have been combined from multiple sources, and must already have been filtered to include only points with true water access (i.e., within 50-m of water features).
+
+# TO DO:
+# - Save out service layer file so you can pull it into map after processing.
+# - Add processing time benchmarks
+# - Fix various oddities, esp. coastal area
 # ----------------------------------------------------------------------------------------
 
 
@@ -58,13 +63,16 @@ def MakeServiceLayer_aqua(in_GDB):
 
 # Load barriers into the service area layer
 def LoadBarriers_aqua(in_ServiceLayer, in_GDB):
-   '''Creates line barriers in the service area layer, using dams and weirs. This truncates and separates service areas in some places.
+   '''Creates line barriers in the service area layer, using dams and weirs. This results in truncation and separation of service areas in some places.
    Parameters:
    - in_ServiceLayer = The service layer output from the MakeServiceLayer_aqua function
    - in_GDB = The geodatabase containing the network and associated features
    '''
    
-   in_Lines = in_GDB + os.sep + "HydroNet" + os.sep + "NHDLine_DamWeir"
+   in_Lines = in_GDB + os.sep + "HydroNet" + os.sep + "NHDLine"
+   where_clause = "FType = 343" # DamWeir only
+   arcpy.MakeFeatureLayer_management (in_Lines, "lyr_DamWeir", where_clause)
+   in_Lines = "lyr_DamWeir"
 
    barriers = arcpy.AddLocations_na(in_network_analysis_layer=in_ServiceLayer, 
          sub_layer="Line Barriers", 
@@ -82,7 +90,7 @@ def LoadBarriers_aqua(in_ServiceLayer, in_GDB):
    
 # Load water access points into the service area layer
 def LoadAccessPts_aqua(in_ServiceLayer, in_Points):
-   '''Creates facilities in the service area layer, from water access points input by user. Assumes water access input is a shapefile, as function uses the FID for the facilities names. May want to recode to use some other unique identifier.
+   '''Creates facilities in the service area layer, from water access points input by user. Assumes water access input is a shapefile, as this function uses the FID for the facilities names. May want to recode to use some other unique identifier.
    
    NOTE: A large search distance is used because for wide features, the access point at the edge of the water body can be quite far from the linear network FlowLines. The input access points should be filtered to ensure that they are in fact within 50-m of NHD features, prior to loading into the service area layer.
    
@@ -110,7 +118,7 @@ def GetServiceAreas_aqua(in_ServiceLayer, in_GDB, in_BeachLines, out_GDB):
    '''Gets the output from solving the service layer and performs additional steps to get final output.
    Parameters:
    - in_ServiceLayer = The service layer output from the MakeServiceLayer_aqua function
-   - in_GDB = The geodatabase containing the network and associated features
+   - in_GDB = The input geodatabase containing the network and associated features
    - in_BeachLines = Line feature class representing public beaches
    - out_GDB = Geodatabase for storing outputs.
    '''
@@ -120,16 +128,14 @@ def GetServiceAreas_aqua(in_ServiceLayer, in_GDB, in_BeachLines, out_GDB):
       terminate_on_solve_error="TERMINATE", 
       simplification_tolerance="")
 
-   # Save out the lines and points
-   # subLayerNames = arcpy.na.GetNAClassNames(in_ServiceLayer)
-   # facilitiesLayerName = subLayerNames["Facilities"]
-   # linesLayerName = subLayerNames["SALines"]
+   # Save out the service layer lines and points
    printMsg('Saving out lines...')
    in_Lines = arcpy.mapping.ListLayers(in_ServiceLayer, "Lines")[0]
    out_Lines = out_GDB + os.sep + "FlowTrace"
    arcpy.CopyFeatures_management(in_Lines, out_Lines)
    
    printMsg('Saving out non-network points...')
+   # We need these to capture off-network features
    in_Points = arcpy.mapping.ListLayers(in_ServiceLayer, "Facilities")[0]
    where_clause = '"Status" <> 0' # Only grab points not located on network
    arcpy.MakeFeatureLayer_management (in_Points, "lyr_offPts", where_clause)
@@ -204,7 +210,12 @@ def GetServiceAreas_aqua(in_ServiceLayer, in_GDB, in_BeachLines, out_GDB):
    Estuary = out_GDB + os.sep + "Estuary"
    arcpy.CopyFeatures_management("lyr_Estuary", Estuary)
    
-   #### TODO: Add estuary beaches
+   arcpy.MakeFeatureLayer_management (nhdWaterbody, "lyr_Estuary", where_clause)
+   arcpy.SelectLayerByLocation_management ("lyr_Estuary", "WITHIN_A_DISTANCE", in_BeachLines, "50 METERS", "NEW_SELECTION")
+   arcpy.Clip_analysis ("lyr_Estuary", beachBuff, clp)
+   expl = "in_memory" + os.sep + "expl"
+   arcpy.MultipartToSinglepart_management (clp, expl)
+   arcpy.Append_management (expl, Estuary, "NO_TEST")
 
    # Combine all the polygons
    printMsg('Combining polygons...')
@@ -222,9 +233,10 @@ def GetServiceAreas_aqua(in_ServiceLayer, in_GDB, in_BeachLines, out_GDB):
 def main():
    # Set up variables
    in_GDB = r'C:\Users\xch43889\Documents\Working\ConsVision\HydroNet_testing\VA_HydroNet.gdb'
-   in_Points = r'C:\Users\xch43889\Documents\Working\ConsVision\HydroNet_testing\testing.gdb\test_waterAccess'
+   in_Points = r'C:\Users\xch43889\Documents\Working\ConsVision\HydroNet_testing\VOPdata\vopBoatAccess_valam.shp'
    in_BeachLines = r'C:\Users\xch43889\Downloads\PublicBeaches\PublicBeachesExtents.shp'
    out_GDB = r'C:\Users\xch43889\Documents\Working\ConsVision\HydroNet_testing\testing.gdb'
+   
    
    # Specify function(s) to run
    printMsg('Making service layer...')
@@ -238,6 +250,8 @@ def main():
    
    printMsg('Creating service area output...')
    GetServiceAreas_aqua(outNALayer, in_GDB, in_BeachLines, out_GDB)
+   
+   printMsg('Processing complete.')
    
    return outNALayer
    
