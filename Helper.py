@@ -3,7 +3,7 @@
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creator: Kirsten R. Hazler
 # Creation Date: 2017-10-24 
-# Last Edit: 2017-12-05
+# Last Edit: 2018-06-13
 
 # Summary:
 # Imports standard modules, applies standard settings, and defines a collection of helper functions to be called by other scripts.
@@ -204,6 +204,55 @@ def valToScoreNeg(inRast, minimum, maximum):
    with scores decreasing to 0 at the maximum value and beyond.'''
    rast = Con(inRast <= minimum, 100, Con(inRast > maximum, 0, 100 * (maximum - inRast) / (maximum - minimum)))
    return rast
+   
+def CleanFeatures(inFeats, outFeats):
+   '''Repairs geometry, then explodes multipart polygons to prepare features for geoprocessing.'''
+   
+   # Process: Repair Geometry
+   arcpy.RepairGeometry_management(inFeats, "DELETE_NULL")
+
+   # Have to add the while/try/except below b/c polygon explosion sometimes fails inexplicably.
+   # This gives it 10 tries to overcome the problem with repeated geometry repairs, then gives up.
+   counter = 1
+   while counter <= 10:
+      try:
+         # Process: Multipart To Singlepart
+         arcpy.MultipartToSinglepart_management(inFeats, outFeats)
+         
+         counter = 11
+         
+      except:
+         arcpy.AddMessage("Polygon explosion failed.")
+         # Process: Repair Geometry
+         arcpy.AddMessage("Trying to repair geometry (try # %s)" %str(counter))
+         arcpy.RepairGeometry_management(inFeats, "DELETE_NULL")
+         
+         counter +=1
+         
+         if counter == 11:
+            arcpy.AddMessage("Polygon explosion problem could not be resolved.  Copying features.")
+            arcpy.CopyFeatures_management (inFeats, outFeats)
+   
+   return outFeats
+   
+def CleanClip(inFeats, clipFeats, outFeats, scratchGDB = "in_memory"):
+   '''Clips the Input Features with the Clip Features.  The resulting features are then subjected to geometry repair and exploded (eliminating multipart polygons)'''
+   # # Determine where temporary data are written
+   # msg = getScratchMsg(scratchGDB)
+   # arcpy.AddMessage(msg)
+   
+   # Process: Clip
+   tmpClip = scratchGDB + os.sep + "tmpClip"
+   arcpy.Clip_analysis(inFeats, clipFeats, tmpClip)
+
+   # Process: Clean Features
+   CleanFeatures(tmpClip, outFeats)
+   
+   # Cleanup
+   if scratchGDB == "in_memory":
+      garbagePickup([tmpClip])
+   
+   return outFeats
 ##################################################################################################################
 # Use the main function below to run a function directly from Python IDE or command line with hard-coded variables
 
