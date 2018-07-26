@@ -6,7 +6,11 @@ Author: David Bucklin
 
 Date: 2017-11-17
 
+Model Version 1, (draft) released 2017-11.
+
 [TOC]
+
+This document describes the workflow used to create access point datasets to recreational facilities (in [all_facil.sql](../sql/all_facil.sql)),, for use in the Virginia ConservationVision recreational model.
 
 ### Input data 
 
