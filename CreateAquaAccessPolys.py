@@ -2,14 +2,15 @@
 """
 CreateAquaAccessPolys
 
-Created on Wed Jun 20 13:54:43 2018
+Created: 2017-06-20
+Last Updated: 2018-07-26
 
-@author: David Bucklin
+Author: David Bucklin
 
-The function RasterizeAll takes water access points, and one or more feature layers representing aqautic areas, and rasterizes them into one layer
+The function RasterizeAll takes one or more feature layers representing aqautic areas, and rasterizes them into one layer
 with a fixed value for water areas.  This can be used as a cost surface raster for travel along the water network.
 
-The function CreateAccessPolys uses the water areas cost surface raster and water access points to derive "Access area" for each point, given
+The function CreateAccessPolys uses the water areas cost surface raster and water access points to derive an "Access area" for each point, given
 a maximum travel distance along the water network. The access areas are converted to features and dissolved, and then given a unique ID. Their
 attributes are joined back to the points in a new feature class.
 """
