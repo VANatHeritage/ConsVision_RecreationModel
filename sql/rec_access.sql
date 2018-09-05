@@ -13,7 +13,7 @@ objectid = usually from an imported geodatabase feature class.
 Author: David Bucklin
 
 Created: 2018-06-15
-Last update: 2018-07-26
+Last update: 2018-08-20
 */
 
 -- Terrestrial rec access
@@ -93,19 +93,6 @@ select count(*), round((st_length(geom)/1000)::numeric, 1) from vatrails_cluster
 group by round((st_length(geom)/1000)::numeric, 1)
 order by round((st_length(geom)/1000)::numeric, 1);
 
--- no grouping by distance
-/*
-drop table vatrails_cluster;
-create table vatrails_cluster as 
-	select row_number() over () as fid, round(st_length(a.geom)::numeric/1000,8) as length_km, a.geom as geom from 
-	(select st_setsrid(st_collectionextract(unnest(ST_ClusterIntersecting(geom)),2),3968) as geom from rec_source.vatrails) a
-	where st_length(a.geom) > 0;
-CREATE INDEX trl_geomidx ON vatrails_cluster USING gist (geom);
-select count(*), round((st_length(geom)/1000)::numeric, 1) from vatrails_cluster 
-group by round((st_length(geom)/1000)::numeric, 1)
-order by round((st_length(geom)/1000)::numeric, 1);
-*/
---- END
 
 
 -- Trailheads
@@ -228,8 +215,51 @@ INSERT INTO rec_access.access_t (facil_code, src_table, src_id, use, use_why, ge
 	--AND a.trail in ('Yes', 'yes')
 	;
 
+
 -- VDGIF gate/kiosks
--- need these
+-- temp table with subset
+drop table wmap;
+CREATE temp table wmap as 
+SELECT ogc_fid, st_transform(geom, 3968) as geom FROM rec_source.wma_points where type IN ('Parking', 'Gate', 'Seasonal Gate') and lat != 0;
+
+-- intersecting pub_lands 
+-- (points could be duplicated when intersecting multiple (overlapping) public lands, except if using pub_lands_terr_open
+INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom) 
+	SELECT 'tlnd', 'wma_points', a.ogc_fid,'pub_lands_terr_open', b.objectid, round(st_area(b.geom)::numeric/10000,8), 1, 'intersects pub_lands_terr_open', st_force2d(a.geom) 
+	FROM wmap a, pub_lands_terr_open b
+	WHERE st_intersects(a.geom, b.geom)
+	and st_area(b.geom) > 1000;
+
+-- within a distance of pub_lands (50m) -> associate with closest
+INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom) 
+	SELECT distinct on (a.ogc_fid) 'tlnd', 'wma_points', a.ogc_fid,'pub_lands_terr_open', b.objectid, round(st_area(b.geom)::numeric/10000,8), 1, 'within 50m pub_lands_terr_open',
+	st_force2d(a.geom)
+	FROM wmap a, pub_lands_terr_open b
+	WHERE st_dwithin(a.geom, b.geom, 50)
+	and st_area(b.geom) > 1000
+	AND a.ogc_fid NOT IN (SELECT distinct src_id FROM rec_access.access_t where facil_code = 'tlnd' and src_table = 'wma_points')
+	order by a.ogc_fid, st_distance(a.geom, b.geom) asc;
+
+-- within a distance of pub_lands (500m) -> associate with closest
+INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom) 
+	SELECT distinct on (a.ogc_fid) 'tlnd', 'wma_points', a.ogc_fid,'pub_lands_terr_open', b.objectid, round(st_area(b.geom)::numeric/10000,8), 1, 'within 50-500m pub_lands_terr_open',
+	st_force2d(a.geom)
+	FROM wmap a, pub_lands_terr_open b
+	WHERE st_dwithin(a.geom, b.geom, 500)
+	and st_area(b.geom) > 1000
+	AND a.ogc_fid NOT IN (SELECT distinct src_id FROM rec_access.access_t where facil_code = 'tlnd' and src_table = 'wma_points')
+	order by a.ogc_fid, st_distance(a.geom, b.geom) asc;
+
+select a.ogc_fid from wmap a where a.ogc_fid not in (SELECT distinct src_id FROM rec_access.access_t where facil_code = 'tlnd' and src_table = 'wma_points');
+
+-- insert these with use = 0.
+INSERT INTO rec_access.access_t (facil_code, src_table, src_id, use, use_why, geom) 
+	SELECT 'tlnd', 'wma_points', a.ogc_fid, 0, 'not within 500m of any public land', st_force2d(a.geom)
+	FROM wmap a 
+	where a.ogc_fid not in (select distinct src_id from rec_access.access_t where facil_code = 'tlnd' and src_table = 'wma_points');
+
+select a.ogc_fid from wmap a where a.ogc_fid not in (select distinct src_id from rec_access.access_t where facil_code = 'tlnd' and src_table = 'wma_points');
+select use, count(use) from rec_access.access_t where src_table = 'wma_points' group by use;
 
 
 -- Public lands polygons - generating one point per non-associated polygon
@@ -265,7 +295,8 @@ SELECT DISTINCT ON (a.objectid) 'tlnd', 'pub_lands_terr_open', a.objectid, 'pub_
 		'S1100','S1100HOV','S1640')
 		ORDER BY a.objectid, ST_Distance(a.geom,b.geom) asc;
 -- check	
-select join_fid from plnd_assoc order by join_fid;
+select objectid, st_area(geom) from pub_lands_terr_open where objectid not in (select * from plnd_assoc order by join_fid) order by st_area(geom) desc;
+-- should be just small polys excluded
 drop view plnd_assoc;
 -- all polygons have a point now
 
@@ -330,6 +361,23 @@ INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join
 	--AND a.trail in ('Yes', 'yes')
 	AND a.objectid NOT IN (SELECT distinct src_id FROM rec_access.access_t WHERE facil_code = 'ttrl' and src_table = 'va_public_access')
 	order by a.objectid, st_distance(st_transform(a.geom, 3968), b.geom) asc;
+-- dgif points
+INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom) 
+	SELECT distinct on (a.ogc_fid) 'ttrl', 'wma_points', a.ogc_fid, 'vatrails_cluster', b.fid, b.length_km, 1, 'within 50m vatrails_cluster',
+	 st_transform(st_force2d(a.geom), 3968) 
+	FROM wmap a, vatrails_cluster b
+	WHERE st_dwithin(st_transform(a.geom, 3968), b.geom, 50)
+	and b.length_km > 0.5
+	AND a.ogc_fid NOT IN (SELECT distinct src_id FROM rec_access.access_t WHERE facil_code = 'ttrl' and src_table = 'wma_points')
+	order by a.ogc_fid, st_distance(st_transform(a.geom, 3968), b.geom) asc;
+INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom) 
+	SELECT distinct on (a.ogc_fid) 'ttrl', 'wma_points', a.ogc_fid, 'vatrails_cluster', b.fid, b.length_km, 1, 'within 50-500m vatrails_cluster',
+	 st_transform(st_force2d(a.geom), 3968) 
+	FROM wmap a, vatrails_cluster b
+	WHERE st_dwithin(st_transform(a.geom, 3968), b.geom, 500)
+	and b.length_km > 0.5
+	AND a.ogc_fid NOT IN (SELECT distinct src_id FROM rec_access.access_t WHERE facil_code = 'ttrl' and src_table = 'wma_points')
+	order by a.ogc_fid, st_distance(st_transform(a.geom, 3968), b.geom) asc;
 
 -- all remaining trail clusters (1 point per)
 select distinct join_fid from rec_access.access_t where facil_code = 'ttrl' and join_table = 'vatrails_cluster';
@@ -367,6 +415,7 @@ order by facil_code, src_table;
 
 -- area per access points - "least accessible" polygons (< 1 point per 1000 ha)
 -- should we do something with these or leave as is?
+/*
 select *, area_ha/ct_acc as ha_per_acc from
 (select join_fid, count(join_fid) ct_acc  from 
 rec_access.access_t
@@ -376,6 +425,7 @@ join
 on (a.join_fid = b.objectid)
 where  area_ha/ct_acc > 1000
 order by ha_per_acc desc;
+*/
 
 -- should we set a size limit on using generated points? (e.g. must be >1ha to generate a point?)
 select count(*) from rec_access.access_t where join_score < 1 and use != 0 and src_table = 'pub_lands_terr_open';
@@ -433,6 +483,8 @@ update rec_access.access_t set use = 0, use_why = 'exact duplicate with access p
  a.access_t_id != b.access_t_id and a.facil_code = b.facil_code and st_intersects(a.geom, b.geom)) sub);
 -- end rec_access.access_t
 
+select facil_code, count(*) from rec_access.access_t where use != 0 group by facil_code;
+select facil_code, count(distinct join_fid) from rec_access.access_t where use != 0 group by facil_code;
 
 /*
 Aquatic access
@@ -473,12 +525,13 @@ select distinct boat_ramp from rec_source.va_public_access; -- facil code = awtc
 select distinct fishing from rec_source.va_public_access; -- facil code = afsh
 select distinct swimming from rec_source.va_public_access; -- facil code = agen
 -- join table for type of access
-drop view afacil;
-create or replace view afacil as 
+create temp table afacil as 
 select ogc_fid as src_id, 'awct' as facil_code from rec_source.va_public_access where boat_ramp in ('Yes','yes','es','hand carry') UNION ALL
 select ogc_fid as src_id, 'afsh' as facil_code from rec_source.va_public_access where fishing in ('Yes','yes') UNION ALL
-select ogc_fid as src_id, 'aswm' as facil_code from rec_source.va_public_access where swimming in ('Yes','yes') UNION ALL
-select ogc_fid as src_id, 'agen' as facil_code from rec_source.va_public_access;
+select ogc_fid as src_id, 'aswm' as facil_code from rec_source.va_public_access where swimming in ('Yes','yes');
+-- add remaining as general
+INSERT INTO afacil
+select ogc_fid as src_id, 'agen' as facil_code from rec_source.va_public_access where ogc_fid not in (select src_id from afacil);
 select * from afacil;
 
 -- within 500m
@@ -503,14 +556,7 @@ SELECT distinct on (a.ogc_fid) 'va_public_access' as src_table, a.ogc_fid as src
 	where st_dwithin(st_transform(a.geom, 3968), b.geom, 500)
 	and a.ogc_fid not in (select distinct src_id from aqua_temp where int) 
 	order by a.ogc_fid, st_distance(st_transform(a.geom, 3968), b.geom);
--- aqua_temp has duplicates; this query will be the closest to an aquatic feature (from either polys or lines) by src_id 
-select * from 
-(select src_id, pla_dist pla_dist_l from aqua_temp
-where pla_area = 0 and pla_dist > 50) a join (
-select src_id, pla_dist pla_dist_p, geom from aqua_temp
-where pla_area > 0 and pla_dist > 50) b using (src_id)
-where (pla_dist_l > 300 and pla_dist_p > 300)
-order by pla_dist_p desc;
+-- aqua_temp has duplicates (because of multiple facil_codes)
 select * from aqua_temp;
 
 -- insert intersecting
@@ -536,7 +582,7 @@ INSERT INTO rec_access.access_a (facil_code, src_table, src_id, join_table, join
 
 
 -- boat access
-select distinct type, count(*) from rec_source.boat_access group by type order by type
+select distinct type, count(*) from rec_source.boat_access group by type order by type;
 -- all watercraft access (awct)
 -- within 500m
 drop table aqua_temp;
@@ -609,8 +655,6 @@ SELECT distinct on (a.ogc_fid) 'bwt_sites' as src_table, 'agen' as facil_code, a
 	where st_dwithin(st_transform(a.geom, 3968), b.geom, 50)
 	and a.ogc_fid not in (select distinct src_id from aqua_temp where int)
 	order by a.ogc_fid, st_distance(st_transform(a.geom, 3968), b.geom);
-select count(*) from aqua_temp;
-
 -- insert intersecting
 --delete from rec_access.access_a where facil_code = 'agen' and src_table = 'bwt_sites';
 INSERT INTO rec_access.access_a (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom)
@@ -623,6 +667,7 @@ INSERT INTO rec_access.access_a (facil_code, src_table, src_id, join_table, join
 	from (select distinct on (src_id) * from aqua_temp order by src_id, pla_dist) a
 	where pla_dist < 50 and src_id not in (select src_id from rec_access.access_a where src_table = 'bwt_sites');
 -- no 500m or unassociated for bwt_sites
+
 
 --
 -- trailheads
@@ -649,9 +694,6 @@ SELECT distinct on (a.objectid) 'vatrailheads' as src_table, 'agen' as facil_cod
 	where st_dwithin(a.geom, b.geom, 50)
 	and a.objectid not in (select distinct src_id from aqua_temp where int)
 	order by a.objectid, st_distance(a.geom, b.geom);
--- this will be closest by src_id from either polys or lines
-select count(*) from aqua_temp;
-
 -- insert intersecting
 INSERT INTO rec_access.access_a (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom)
 	select facil_code, src_table, src_id, join_table, join_fid, join_score, 1, 'intersecting aquatic features', geom 
@@ -664,15 +706,57 @@ INSERT INTO rec_access.access_a (facil_code, src_table, src_id, join_table, join
 	where pla_dist < 50 and src_id not in (select src_id from rec_access.access_a where src_table = 'vatrailheads');
 -- no 500m or unassociated for vatrailheads
 
+
 --
+-- DGIF new 
+select distinct type from rec_source.wma_points where exclude = 'N'
+-- boat and fishing access
+-- within 50m only
+drop table aqua_temp;
+CREATE TEMP TABLE aqua_temp as
+SELECT distinct on (a.objectid) 'wma_points' as src_table, case when a.type = 'Boat Ramp' then 'awct' else 'afsh' end as facil_code, a.objectid as src_id, 
+		'nhd_area_wtrb' as join_table, b.objectid as join_fid, round(st_area(b.geom)::numeric/10000,8) as join_score, 
+		st_distance(st_transform(a.geom, 3968), b.geom) as pla_dist, st_closestpoint(b.geom,st_transform(a.geom, 3968)) as geom_cp, st_transform(a.geom, 3968) as geom, -- generating points on polygon boundary
+		st_intersects(st_transform(a.geom, 3968), b.geom) as int 
+	from rec_source.wma_points a,
+	rec_source.nhd_area_wtrb b
+	where st_dwithin(st_transform(a.geom, 3968), b.geom, 50)
+	and a.exclude = 'N'
+	order by a.objectid, st_distance(st_transform(a.geom, 3968), b.geom);
+-- insert point closest to line where not already intersecting nhd_area_wtrb
+INSERT INTO aqua_temp
+SELECT distinct on (a.objectid) 'wma_points' as src_table, case when a.type = 'Boat Ramp' then 'awct' else 'afsh' end as facil_code, a.objectid as src_id, 
+		'nhd_area_wtrb' as join_table, b.objectid as join_fid, round(st_area(b.geom)::numeric/10000,8) as join_score, 
+		st_distance(st_transform(a.geom, 3968), b.geom) as pla_dist, st_closestpoint(b.geom,st_transform(a.geom, 3968)) as geom_cp, st_transform(a.geom, 3968) as geom, -- generating points on polygon boundary
+		st_intersects(st_transform(a.geom, 3968), b.geom) as int 
+	from rec_source.wma_points a,
+	rec_source.nhd_flowline b
+	where st_dwithin(st_transform(a.geom, 3968), b.geom, 50)
+	and a.exclude = 'N'
+	and a.objectid not in (select distinct src_id from aqua_temp where int)
+	order by a.objectid, st_distance(st_transform(a.geom, 3968), b.geom);
+-- insert intersecting
+INSERT INTO rec_access.access_a (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom)
+	select facil_code, src_table, src_id, join_table, join_fid, join_score, 1, 'intersecting aquatic features', geom 
+	from (select distinct on (src_id) * from aqua_temp order by src_id, pla_dist) a
+	where int;
+-- 50m
+INSERT INTO rec_access.access_a (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom)
+	select facil_code, src_table, src_id, join_table, join_fid, join_score, 1, 'within 50m of aquatic features - point on feature', geom_cp 
+	from (select distinct on (src_id) * from aqua_temp order by src_id, pla_dist) a
+	where pla_dist < 50 and src_id not in (select src_id from rec_access.access_a where src_table = 'wma_points');
+-- no 500m or unassociated for wma_points
 
---- GENERATING "FAKE" ACCESS POINTS
 
--- unassociated lakes, trout reaches, scenic rivers, beaches
--- for these, generate one point per feature
--- on feature's boundary, relative to intersecting/nearby roads
--- these will have use = 2 (indicating generated but should be used), or use = 0 if not intended to be used
- 
+
+--- GENERATING NEW ACCESS POINTS
+
+-- for unassociated lakes, trout reaches, scenic rivers, beaches
+-- point generation technique varies by feature type
+-- points generated on feature's boundary, relative to intersecting/nearby roads
+-- these points will have use = 2 (indicating generated but should be used), or use = 0 if not intended to be used
+
+--
 -- pub_fish_lake
 -- all [facil_code = afsh] access 
 -- first dump and transform lakes
@@ -689,8 +773,6 @@ rec_access.access_a b where
 st_dwithin(a.geom, b.geom, 50);
 
 -- intersecting lakes
--- QUESTION; maybe generate one point for every lake, regardless if it has access point already? Just one point added per (distinct polygon) lake anyways
-	-- for now only generating points for lakes not already with access pt
 -- delete from rec_access.access_a where src_table = 'pub_fish_lake_dump';
 INSERT INTO rec_access.access_a (facil_code, src_table, src_id, use, use_why, geom)
 SELECT DISTINCT ON (a.fid) 'afsh', 'pub_fish_lake_dump', a.fid, 2, 'closest point to polygon centroid from road intersections', 
@@ -738,6 +820,7 @@ select * from rec_access.access_a where join_fid is null and src_table = 'pub_fi
 
 
 -- trout reaches
+delete from rec_access.access_a where src_table = 'stocked_trout_reaches_diss';
 -- all [facil_code = afsh] access
 drop table rec_source.stocked_trout_reaches_diss;
 create table rec_source.stocked_trout_reaches_diss as select row_number() over() as fid, round(st_length(a.geom)::numeric/1000,8) as length_km, geom FROM
@@ -754,7 +837,6 @@ st_dwithin(a.geom, b.geom, 50);
 
 -- intersecting trout reaches
 -- take all intersecting points
--- delete from rec_access.access_a where src_table = 'stocked_trout_reaches_diss';
 INSERT INTO rec_access.access_a (facil_code, src_table, src_id, use, use_why, geom)
 SELECT 'afsh', 'stocked_trout_reaches_diss', a.fid, 2, 'stocked trout reach road intersection',
 -- SELECT DISTINCT ON (a.fid) 'aqua', 'stocked_trout_reaches_diss', a.fid, 2, 'closest point to feature centroid from road intersections', 
@@ -763,7 +845,6 @@ SELECT 'afsh', 'stocked_trout_reaches_diss', a.fid, 2, 'stocked trout reach road
 		rec_source.stocked_trout_reaches_diss a, -- transformed table
 		roads.va_centerline b
 		where st_intersects(a.geom, b.geom)
-		-- and a.fid NOT IN (select fid from excl) -- would exclude str already within 50m of an access point
 		and b.mtfcc NOT IN ('S9999','S1710','S1720','S1740','S1820','S1830','S1500', -- excluded from analysis
 		'S1100','S1100HOV','S1640');
 INSERT INTO rec_access.access_a (facil_code, src_table, src_id, use, use_why, geom)
@@ -772,6 +853,7 @@ SELECT DISTINCT ON (a.fid) 'afsh', 'stocked_trout_reaches_diss', a.fid, 0, 'clos
 		roads.va_centerline b 
 		where st_dwithin(a.geom, b.geom, 10000) -- manually adjust here with increasingly higher values to speed up/provide cutoff for polys > a distance to closest road
 		and a.fid not in (select distinct src_id from rec_access.access_a where src_table = 'stocked_trout_reaches_diss')
+		and a.fid NOT IN (select fid from excl) -- would exclude str already within 50m of an access point
 		AND b.mtfcc NOT IN ('S9999','S1710','S1720','S1740','S1820','S1830','S1500', -- excluded from analysis
 		'S1100','S1100HOV','S1640')
 		ORDER BY a.fid, ST_Distance(a.geom,b.geom) asc;
@@ -954,10 +1036,22 @@ update rec_access.access_a set use = 0, use_why = 'exact duplicate with access p
  a.access_a_id a1, b.access_a_id a2 from rec_access.access_a a, rec_access.access_a b where a.use = 1 and b.use = 1 and 
  a.access_a_id != b.access_a_id and a.facil_code = b.facil_code and st_intersects(a.geom, b.geom)) sub);
 
+/*
+"boat_access";1;232
+"bwt_sites";1;219
+"pub_fish_lake_dump";2;170
+"public_beaches_polys";2;131
+"scenic_rivers";2;11
+"stocked_trout_reaches";2;191
+"va_public_access";1;219
+"vatrailheads";1;340
+*/
+
 -- end rec_access.access_a
 
 vacuum analyze rec_access.access_a;
 vacuum analyze rec_access.access_t;
+
 
 /*
 -- SUMMARIES
@@ -975,7 +1069,7 @@ group by facil_code;
 "agen";477
 "aswm";28
 "awct";131
--- these will need distinct service areas (n = 1134). But generating aquatic areas, so this isn't what will be used.
+-- these will need distinct service areas (n = 1134). But we're generating aquatic areas, so this isn't what will be used.
 select facil_code, join_table, join_fid, count(*) from rec_access.access_a where use <> 0
 group by facil_code, join_table, join_fid
 order by count(*) desc;
@@ -1012,8 +1106,8 @@ group by src_table, facil_code, use_why
 order by src_table, facil_code, use_why;
 
 -- short trails included
-select * from rec_access.access_t where join_score < 1 and facil_code = 'ttrl';
+select * from rec_access.access_t where join_score < 1 and facil_code = 'ttrl' order by join_score asc;
 -- small polygons included
-select * from rec_access.access_t where join_score < 0.5 and facil_code = 'tlnd'; 
+select * from rec_access.access_t where join_score < 0.5 and facil_code = 'tlnd' order by join_score asc; 
 */
 
