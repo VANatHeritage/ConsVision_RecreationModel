@@ -12,15 +12,18 @@ Model Version 2.
 
 This document describes the workflow used to create access point datasets to recreational facilities (in [rec_access.sql](../sql/rec_access.sql)), for use in the Virginia ConservationVision recreational model.
 
+
+
 ### Input data 
 
-*Recreation Input datasets*
+#### Recreation Input datasets
 
 From Virginia Outdoors Plan (VOP) Mapper:
 
 - publiclands\_wgs (Polygon)
-- scenicrivers (Line)
+  - Represents all public lands in Virginia, with a 'pubaccess' column specifying level of access
 - VA\_public\_access (Point)
+  - public-access recreation sites and amenities. Includes attributes which indicate specific types of activities available.
 
 From Virginia Dept. of Conservation &amp; Recreation, Division of Planning & Recreation Resources (DCR-PRR):
 
@@ -34,12 +37,13 @@ From Virginia Dept. of Game and Inland Fisheries (VDGIF):
 - Birding\_&\_Wildlife\_Trail\_Sites (Point)
 - VDGIF\_Maintained\_Boating\_Access\_Locations (Point)
 - WMA_Points (Point)
+  - points of access for DGIF's wildlife management areas
 
 From Virginia Institute of Marine Science (VIMS):
 
 - PublicBeaches (Line)
 
-*Road centerline data*
+#### Road centerline data
 
 From Virginia Geographic Information Network (VGIN):
 
@@ -51,11 +55,11 @@ From Virginia Geographic Information Network (VGIN):
 >
 > This excludes driveways, walkways/ped. trails, stairways, service vehicle private drives, bike paths/trails, bridle paths, 4wd vehicular trails.
 
+#### Aquatic features 
 
+From the National Hydrography Dataset (NHD):
 
-*Aquatic features - National Hydrography Dataset (NHD)*
-
-- derived feature class *nhd_area_wtrb* from:
+- derived the feature class *nhd_area_wtrb* from:
   - NHD Area
     - definition query: `FTYPE IN ( 445, 460, 312 , 364, 336)`: BayInlet, Foreshore, SeaOcean, StreamRiver; CanalDitch
   - NHD Waterbody
@@ -64,6 +68,8 @@ From Virginia Geographic Information Network (VGIN):
 - derived feature class *nhd_flowline* from :
   - NHD Flowline
     - definition query: `FTYPE IN ( 460, 558 ,336)`: ArtificialPath, StreamRiver, CanalDitch
+
+
 
 ### Data pre-processing
 
@@ -85,6 +91,8 @@ Several recreational datasets were modified before use in the model workflow:
 - *pub_fish_lake* 
   - dumped into single polygons, since some distinct lakes were joined as multi-part polygons in original dataset
   - resulting table is *pub_fish_lake_dump*
+
+
 
 ### Generating recreational access points from recreation datasets
 
@@ -161,7 +169,6 @@ All terrestrial access points were input into table ***access_t***, which has th
         - for trails intersecting roads - the closest point on road intersections to the trail cluster centroid
         - for trails not intersecting roads - the closest point on the trails to a road
 
-    
 
 #### Aquatic facilities
 
@@ -188,8 +195,6 @@ All aquatic facilities were input into table ***access_a***, which has the follo
   - populated during point creation, with reasoning for associated *use* value
 - road\_dist: distance from point to nearest road
 - geom: the point geometry
-
-
 
 ##### Point generation methods for inclusion in access_a:
 
@@ -234,6 +239,8 @@ All aquatic facilities were input into table ***access_a***, which has the follo
     - facil_type = *aswm*
     - For each road segment within 50m of a beach boundary, generated one point on the boundary
     - For polygons not within 50m of roads, included one point on the beach polygon closest to a road
+
+
 
 ### Post-processing
 
