@@ -32,9 +32,12 @@ def CreateBenchmark(inPop, inVal, outBenchmark):
    
    # Calculate benchmark raster
    printMsg('Calculating benchmark raster.')
-   expression = '"%s" * float(%s)' % (inPop, str(inVal))
-   arcpy.gp.RasterCalculator_sa(expression, outBenchmark)
+   # expression = '"%s" * float(%s)' % (inPop, str(inVal))
+   # arcpy.gp.RasterCalculator_sa(expression, outBenchmark)
+   tmpRast = Raster(inPop) * float(inVal)
+   tmpRast.save(outBenchmark)
    
+   printMsg('Finished.')
    return outBenchmark
 
 def QuantRecOpps(inDir, inPop, outOppsPP, outRecOpps, tmpDir, zeroRast = ''):
@@ -68,8 +71,10 @@ def QuantRecOpps(inDir, inPop, outOppsPP, outRecOpps, tmpDir, zeroRast = ''):
       printMsg('Zero raster already exists. Proceeding to next step...')
    else:
       printMsg('Creating zero raster...')
-      expression = 'Con("%s",0)' % inPop
-      arcpy.gp.RasterCalculator_sa(expression, zeroRast)
+      # expression = 'Con("%s",0)' % inPop
+      # arcpy.gp.RasterCalculator_sa(expression, zeroRast)
+      tmpRast = Con(inPop, 0)
+      tmpRast.save(zeroRast)
       printMsg('Zero raster created.')
       
    # Initialize some objects
@@ -86,20 +91,25 @@ def QuantRecOpps(inDir, inPop, outOppsPP, outRecOpps, tmpDir, zeroRast = ''):
          printMsg('Working on %s...' % sa) 
       
          # Integerize the service area
-         expression = 'Con("%s",1)' % sa
          intSA = tmpDir + os.sep + "intSA.tif"
-         arcpy.gp.RasterCalculator_sa(expression, intSA)
+         # expression = 'Con("%s",1)' % sa
+         # arcpy.gp.RasterCalculator_sa(expression, intSA)
+         tmpRast = Con(sa,1)
+         tmpRast.save(intSA)
          printMsg('Service area integerized.')
 
          # Get sum of population within service area
          sumPop = tmpDir + os.sep + "sumPop.tif"
-         arcpy.gp.ZonalStatistics_sa(intSA, "Value", inPop, sumPop, "SUM", "DATA") 
+         tmpRast = ZonalStatistics(intSA, "Value", inPop, "SUM", "DATA") 
+         tmpRast.save(sumPop)
          printMsg('Population summed.')
          
          # Get the recreation area (or length) per person
-         expression = '"%s"/"%s"' % (sa, sumPop )
          recPP = tmpDir + os.sep + "recPP_%05d.tif" % myIndex
-         arcpy.gp.RasterCalculator_sa(expression, recPP)
+         # expression = '"%s"/"%s"' % (sa, sumPop )
+         # arcpy.gp.RasterCalculator_sa(expression, recPP)
+         tmpRast = Raster(sa)/Raster(sumPop)
+         tmpRast.save(recPP)
          printMsg('Per person rec opps calculated.')
          
          myRastList.append(recPP)
@@ -119,14 +129,17 @@ def QuantRecOpps(inDir, inPop, outOppsPP, outRecOpps, tmpDir, zeroRast = ''):
    # Sum the areas (or lengths) accessed per person
    printMsg('Summing all rasters to get per-person recreation access. This will take awhile...')
    arcpy.env.extent = inPop
-   newSum = CellStatistics (myRastList, "SUM", "DATA")
-   arcpy.CopyRaster_management (newSum, outOppsPP) 
+   tmpRast = CellStatistics(myRastList, "SUM", "DATA")
+   tmpRast.save(outOppsPP)
+   #arcpy.CopyRaster_management (tmpRast, outOppsPP) 
    printMsg('Finished summing rasters.')
    
    # Calculate the population-weighted areas (or lengths) accessed
    printMsg('Calculating population-weighted recreation access...')
-   expression = '"%s" * "%s"' % (inPop, outOppsPP)
-   arcpy.gp.RasterCalculator_sa(expression, outRecOpps)
+   # expression = '"%s" * "%s"' % (inPop, outOppsPP)
+   # arcpy.gp.RasterCalculator_sa(expression, outRecOpps)
+   tmpRast = Raster(inPop)/Raster(outOppsPP)
+   tmpRast.save(outRecOpps)
    printMsg('Mission accomplished.')
    
    return (outOppsPP, outRecOpps)
@@ -142,8 +155,10 @@ def AssessRecOpps(inBenchmark, inRecOpps, outRecAssessment):
    '''
    
    printMsg('Comparing recreation access to benchmark by subraction...')
-   expression = '"%s" - "%s"' % (inBenchmark, inRecOpps)
-   arcpy.gp.RasterCalculator_sa(expression, outRecAssessment)
+   # expression = '"%s" - "%s"' % (inBenchmark, inRecOpps)
+   # arcpy.gp.RasterCalculator_sa(expression, outRecAssessment)
+   tmpRast = Raster(inBenchmark) - Raster(inRecOpps)
+   tmpRast.save(outRecAssessment)
    
    # Possibly add further steps here to classify and symbolize output?
    
@@ -165,8 +180,8 @@ def main():
       
    # Specify function(s) to run
    # CreateBenchmark(inPop, inVal, outBenchmark)
-   # QuantRecOpps(inDir, inPop, outOppsPP, outRecOpps, tmpDir, zeroRast = '')
-   AssessRecOpps(outBenchmark, outRecOpps, outRecAssessment)
+   QuantRecOpps(inDir, inPop, outOppsPP, outRecOpps, tmpDir, zeroRast = '')
+   # AssessRecOpps(outBenchmark, outRecOpps, outRecAssessment)
    
 
 if __name__ == '__main__':
