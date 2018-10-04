@@ -2,14 +2,14 @@
 # DistribPop.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2018-10-03
-# Last Edit: 2018-10-03
+# Last Edit: 2018-10-04
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
 # Distributes population from census blocks to developed pixels, yielding a raster representing persons per pixel.
 #
 # Usage:
-# 
+# Note that this script generates warnings, but seems to function as intended.
 #--------------------------------------------------------------------------------------
 # Import Helper module and functions
 import Helper
@@ -88,10 +88,16 @@ def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmp
                                     cellsize = inLandCover)
    
    # Get persons per pixel by distributing population to developed pixels only
+   pixelPop = tmpDir + os.sep + "pixelPop.tif"
    expression = '"%s" / "%s"' % (blockPop, blockSumDev)
    printMsg('Generating final output...')
-   arcpy.gp.RasterCalculator_sa(expression, outPop)
+   arcpy.gp.RasterCalculator_sa(expression, pixelPop)
    
+   # Set zeros to nulls
+   arcpy.env.mask = Blocks_prj
+   expression = """SetNull("%s" == 0,"%s")""" % (pixelPop, pixelPop)
+   arcpy.gp.RasterCalculator_sa(expression, outPop)
+      
    return outPop
    
    # Use the main function below to run a function directly from Python IDE or command line with hard-coded variables
