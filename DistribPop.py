@@ -95,12 +95,12 @@ def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmp
    
    # Set zeros to nulls
    arcpy.env.mask = Blocks_prj
-   expression = """SetNull("%s" == 0,"%s")""" % (pixelPop, pixelPop)
+   expression = 'SetNull("%s" == 0,"%s")' % (pixelPop, pixelPop)
    arcpy.gp.RasterCalculator_sa(expression, outPop)
       
    return outPop
    
-   # Use the main function below to run a function directly from Python IDE or command line with hard-coded variables
+# Use the main function below to run a function directly from Python IDE or command line with hard-coded variables
 
 def main():
    # Set up variables
