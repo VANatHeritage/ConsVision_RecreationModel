@@ -20,6 +20,7 @@ Author: David Bucklin
 import Helper
 from Helper import *
 from arcpy import env
+import numpy
 
 def adjustServiceAreas(inGDB, popRast, rastPattern):
    import arcpy
@@ -44,15 +45,15 @@ def adjustServiceAreas(inGDB, popRast, rastPattern):
 
       # make mask for zonal statistics (value = 1)
       msk = arcpy.sa.ExtractByMask(popRast, i)
-      mx = round(float(arcpy.GetRasterProperties_management(msk, "MAXIMUM").getOutput(0))) + 1
-      zone = Reclassify(msk, "Value", RemapRange([[0, mx, 1]])) #slow
 
-      # sum population in masked area
-      sum = arcpy.sa.ZonalStatistics(zone, "Value", msk, "SUM")
-      sumPop = int(float(arcpy.GetRasterProperties_management(sum, "MAXIMUM").getOutput(0)))
+      arr = arcpy.RasterToNumPyArray(msk, nodata_to_value=0)
+      sumPop = arr.sum()
+
       # set sum of population to 1 if less than 1 to avoid dividing by 0
       if sumPop < 1:
          sumPop = 1
+      else:
+         sumPop = int(round(sumPop))
 
       # get area from service area raster
       area_ha = float(arcpy.GetRasterProperties_management(i, "MAXIMUM").getOutput(0))
@@ -63,7 +64,7 @@ def adjustServiceAreas(inGDB, popRast, rastPattern):
       arcpy.env.cellSize = i
       arcpy.env.outputCoordinateSystem = i
 
-      arcpy.sa.Divide(i, sumPop).save(inGDB + os.sep + 'popadj_' + str(i))
+      arcpy.sa.Divide(i, sumPop).save(inGDB + os.sep + 'popAdj_' + str(i))
 
       t1 = time.time()
       print('that took ' + str(t1 - t0) + ' seconds.')
@@ -72,7 +73,7 @@ def adjustServiceAreas(inGDB, popRast, rastPattern):
    f.close()   
    arcpy.TableToTable_conversion(file, inGDB, "popAdj_table")
    os.remove(file)
-   garbagePickup([msk, zone, sum])
+   garbagePickup([msk])
    return
 
 def main():
