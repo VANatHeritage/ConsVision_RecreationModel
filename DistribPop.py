@@ -2,7 +2,7 @@
 # DistribPop.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2018-10-03
-# Last Edit: 2018-10-04
+# Last Edit: 2018-10-05
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -52,14 +52,18 @@ def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmp
    arcpy.gp.Reclassify_sa(inImpervious, "Value", rclsString, impDev, "NODATA")
    
    nlcdDev = tmpDir + os.sep + "nlcdDev.tif"
-   expression = 'SetNull(("%s" == 0) & ("%s" == 0),1)' %(impDev, lcDev)
    printMsg('Combining land cover and imperviousness...')
-   arcpy.gp.RasterCalculator_sa(expression, nlcdDev)
+   #expression = 'SetNull(("%s" == 0) & ("%s" == 0),1)' %(impDev, lcDev)
+   #arcpy.gp.RasterCalculator_sa(expression, nlcdDev)
+   tmpRast = SetNull(((Raster(impDev) == 0) & (Raster(lcDev) == 0)), 1)
+   tmpRast.save(nlcdDev)
    
    mskDev = tmpDir + os.sep + "mskDev.tif"
-   expression = 'Con(IsNull("%s"),"%s")' % (inRoads, nlcdDev)
    printMsg('Removing major road pixels...')
-   arcpy.gp.RasterCalculator_sa(expression, mskDev)
+   # expression = 'Con(IsNull("%s"),"%s")' % (inRoads, nlcdDev)
+   # arcpy.gp.RasterCalculator_sa(expression, mskDev)
+   tmpRast = Con(IsNull(inRoads), nlcdDev)
+   tmpRast.save(mskDev)
    
    # Convert census blocks to raster zones
    blockZones = tmpDir + os.sep + "blockZones.tif"
@@ -75,7 +79,9 @@ def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmp
    arcpy.env.mask = mskDev
    blockSumDev = tmpDir + os.sep + "blockSumDev"
    printMsg('Summing developed cells within zones...')
-   arcpy.gp.ZonalStatistics_sa(blockZones, "Value", mskDev, blockSumDev, "SUM", "DATA")
+   # arcpy.gp.ZonalStatistics_sa(blockZones, "Value", mskDev, blockSumDev, "SUM", "DATA")
+   tmpRast = ZonalStatistics(blockZones, "Value", mskDev, "SUM", "DATA")
+   tmpRast.save(blockSumDev)
    
    # Convert census blocks to raw population raster
    blockPop = tmpDir + os.sep + "blockPop.tif"
@@ -89,27 +95,32 @@ def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmp
    
    # Get persons per pixel by distributing population to developed pixels only
    pixelPop = tmpDir + os.sep + "pixelPop.tif"
-   expression = '"%s" / "%s"' % (blockPop, blockSumDev)
    printMsg('Generating final output...')
-   arcpy.gp.RasterCalculator_sa(expression, pixelPop)
+   # expression = '"%s" / "%s"' % (blockPop, blockSumDev)
+   # arcpy.gp.RasterCalculator_sa(expression, pixelPop)
+   tmpRast = Raster(blockPop)/Raster(blockSumDev)
+   tmpRast.save(pixelPop)
    
    # Set zeros to nulls
    arcpy.env.mask = Blocks_prj
-   expression = 'SetNull("%s" == 0,"%s")' % (pixelPop, pixelPop)
-   arcpy.gp.RasterCalculator_sa(expression, outPop)
-      
+   # expression = 'SetNull("%s" == 0,"%s")' % (pixelPop, pixelPop)
+   # arcpy.gp.RasterCalculator_sa(expression, outPop)
+   tmpRast = SetNull(Raster(pixelPop) == 0, pixelPop)
+   tmpRast.save(outPop)
+   
+   printMsg('Finished.')
    return outPop
    
 # Use the main function below to run a function directly from Python IDE or command line with hard-coded variables
 
 def main():
    # Set up variables
-   inBlocks = r'H:\Backups\GIS_Data_VA\TIGER\TABBLOCK_POPHU\2010\tabblock2010_51_pophu\tabblock2010_51_pophu.shp'
+   inBlocks = r'H:\Backups\GIS_Data_VA\TIGER\TABBLOCK_POPHU\2010\tabblock2010_51_pophu\tabblock2010_51_pophu_prj.shp'
    fldPop = 'POP10'
    inLandCover = r'H:\Backups\DCR_Work_DellD\GIS_Data_VA_proc\Finalized\NLCD_VA_2011ed.gdb\nlcd_2011_lc'
    inImpervious = r'H:\Backups\DCR_Work_DellD\GIS_Data_VA_proc\Finalized\NLCD_VA_2011ed.gdb\nlcd_2011_imp'
    inRoads = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\costSurf_only_lah.tif'
-   outPop = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\distribPop.tif'
+   outPop = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\distribPop2.tif'
    tmpDir = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TMP'
    
    # Specify function to run
