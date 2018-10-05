@@ -53,15 +53,11 @@ def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmp
    
    nlcdDev = tmpDir + os.sep + "nlcdDev.tif"
    printMsg('Combining land cover and imperviousness...')
-   #expression = 'SetNull(("%s" == 0) & ("%s" == 0),1)' %(impDev, lcDev)
-   #arcpy.gp.RasterCalculator_sa(expression, nlcdDev)
    tmpRast = SetNull(((Raster(impDev) == 0) & (Raster(lcDev) == 0)), 1)
    tmpRast.save(nlcdDev)
    
    mskDev = tmpDir + os.sep + "mskDev.tif"
    printMsg('Removing major road pixels...')
-   # expression = 'Con(IsNull("%s"),"%s")' % (inRoads, nlcdDev)
-   # arcpy.gp.RasterCalculator_sa(expression, mskDev)
    tmpRast = Con(IsNull(inRoads), nlcdDev)
    tmpRast.save(mskDev)
    
@@ -79,7 +75,6 @@ def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmp
    arcpy.env.mask = mskDev
    blockSumDev = tmpDir + os.sep + "blockSumDev"
    printMsg('Summing developed cells within zones...')
-   # arcpy.gp.ZonalStatistics_sa(blockZones, "Value", mskDev, blockSumDev, "SUM", "DATA")
    tmpRast = ZonalStatistics(blockZones, "Value", mskDev, "SUM", "DATA")
    tmpRast.save(blockSumDev)
    
@@ -96,15 +91,11 @@ def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmp
    # Get persons per pixel by distributing population to developed pixels only
    pixelPop = tmpDir + os.sep + "pixelPop.tif"
    printMsg('Generating final output...')
-   # expression = '"%s" / "%s"' % (blockPop, blockSumDev)
-   # arcpy.gp.RasterCalculator_sa(expression, pixelPop)
    tmpRast = Raster(blockPop)/Raster(blockSumDev)
    tmpRast.save(pixelPop)
    
    # Set zeros to nulls
    arcpy.env.mask = Blocks_prj
-   # expression = 'SetNull("%s" == 0,"%s")' % (pixelPop, pixelPop)
-   # arcpy.gp.RasterCalculator_sa(expression, outPop)
    tmpRast = SetNull(Raster(pixelPop) == 0, pixelPop)
    tmpRast.save(outPop)
    
