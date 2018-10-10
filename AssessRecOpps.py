@@ -158,13 +158,13 @@ def AssessRecOpps(inBenchVal, inPop, inRecPP, outDir, outBasename):
    outBasename = basename (string) for output products
    '''
    
-   printMsg('Comparing recreation access to benchmark by percentage...')
+   printMsg('Calculating the Recreation Access Score...')
    tmpRast1 = 100*Raster(inRecPP)/(float(inBenchVal))
    tmpRast2 = Con(tmpRast1 > 100, 100, tmpRast1)
-   RecPercentPP = outDir + os.sep + outBasename + "_RecPercentPP.tif"
+   RecPercentPP = outDir + os.sep + outBasename + "_RecScore.tif"
    tmpRast2.save(RecPercentPP)
    
-   printMsg('Determining recreation need...')
+   printMsg('Calculating the Recreation Need...')
    tmpRast3 = Con(Raster(RecPercentPP) < 100, Raster(inPop) * (float(inBenchVal) - Raster(inRecPP)))
    RecNeed = outDir + os.sep + outBasename + "_RecNeed.tif"
    tmpRast3.save(RecNeed)
