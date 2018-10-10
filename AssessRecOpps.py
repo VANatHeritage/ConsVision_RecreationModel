@@ -2,7 +2,7 @@
 # AssessRecOpps.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2018-10-04
-# Last Edit: 2018-10-05
+# Last Edit: 2018-10-09
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -137,7 +137,7 @@ def QuantRecOpps(inDir, inPop, outRecPP, tmpDir, zeroRast = ''):
    
    return outRecPP
    
-def AssessRecOpps(inBenchVal, inPop, inRecPP, outRecAssessment):
+def AssessRecOpps(inBenchVal, inPop, inRecPP, outDir, outBasename):
    '''Compares estimated recreation access to a benchmark to determine where recreation resources meet or exceed desired levels, and where attention is needed to offer additional resources.
    
    [eliminated variable] inBenchmark = input raster with benchmark values for desired recreation access (area or length), weighted by population.
@@ -153,17 +153,26 @@ def AssessRecOpps(inBenchVal, inPop, inRecPP, outRecAssessment):
    
    inRecPP = input raster representing per-person sum of available recreation access (area or length)
    
-   outRecAssessment = out raster representing the population-weighted difference between the desired condition (benchmark) and estimated actual condition of recreation access
+   outDir = directory to contain output products
+   
+   outBasename = basename (string) for output products
    '''
    
-   printMsg('Comparing recreation access to benchmark...')
-   tmpRast = Raster(inPop) * (float(inBenchVal) - Raster(inRecPP))
-   tmpRast.save(outRecAssessment)
+   printMsg('Comparing recreation access to benchmark by percentage...')
+   tmpRast1 = 100*Raster(inRecPP)/(float(inBenchVal))
+   tmpRast2 = Con(tmpRast1 > 100, 100, tmpRast1)
+   RecPercentPP = outDir + os.sep + outBasename + "_RecPercentPP.tif"
+   tmpRast2.save(RecPercentPP)
+   
+   printMsg('Determining recreation need...')
+   tmpRast3 = Con(Raster(RecPercentPP) < 100, Raster(inPop) * (float(inBenchVal) - Raster(inRecPP)))
+   RecNeed = outDir + os.sep + outBasename + "_RecNeed.tif"
+   tmpRast3.save(RecNeed)
    
    # Possibly add further steps here to classify and symbolize output?
    
    printMsg('Finished.')
-   return outRecAssessment
+   return (RecPercentPP, RecNeed)
    
 # Use the main function below to run functions directly from Python IDE or command line with hard-coded variables
 
@@ -176,12 +185,14 @@ def main():
    outRecPP = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\outRecPP.tif'
    outRecOpps = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\outRecOpps.tif'
    tmpDir = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TMP'
-   outRecAssessment = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\terrRecAssess.tif'
+   outRecAssessment = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\terrRecAssess_DiffPP.tif'
+   outDir = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM'
+   outBasename = "TerrArea"
       
    # Specify function(s) to run
    # CreateBenchmark(inPop, inVal, outBenchmark)
    # QuantRecOpps(inDir, inPop, outRecPP, tmpDir, zeroRast = '')
-   AssessRecOpps(inBenchVal, inPop, outRecPP, outRecAssessment)
+   AssessRecOpps(inBenchVal, inPop, outRecPP, outDir, outBasename)
    
 
 if __name__ == '__main__':
