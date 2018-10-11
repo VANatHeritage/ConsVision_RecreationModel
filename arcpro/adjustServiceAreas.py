@@ -33,7 +33,7 @@ def adjustServiceAreas(inGDB, popRast, rastPattern):
    if os._exists(file):
       os.remove(file)
    f = open(file, 'w')
-   f.write('fileName' + '\t' + 'area_ha' + '\t' + 'pop_total' + '\t' + 'area_pop' + '\n')
+   f.write('fileName' + '\t' + 'score' + '\t' + 'pop_total' + '\t' + 'score_pop' + '\t' + 'acres_per10k' + '\n')
 
    for i in ls:
       print(i)
@@ -43,7 +43,7 @@ def adjustServiceAreas(inGDB, popRast, rastPattern):
       #arcpy.env.cellSize = popRast
       #arcpy.env.outputCoordinateSystem = popRast
 
-      # make mask for zonal statistics (value = 1)
+      # make masked population raster
       msk = arcpy.sa.ExtractByMask(popRast, i)
 
       arr = arcpy.RasterToNumPyArray(msk, nodata_to_value=0)
@@ -58,13 +58,15 @@ def adjustServiceAreas(inGDB, popRast, rastPattern):
       # get area from service area raster
       area_ha = float(arcpy.GetRasterProperties_management(i, "MAXIMUM").getOutput(0))
       area_pop = area_ha/sumPop
-      f.write(i + '\t' + str(area_ha) + '\t' + str(sumPop) + '\t' + str(area_pop) + '\n')
+      acres_per_10k = (area_ha * 2.47105) / (sumPop/10000)
+      f.write(i + '\t' + str(area_ha) + '\t' + str(sumPop) + '\t' + str(area_pop) + '\t' + str(acres_per_10k) + '\n')
 
       arcpy.env.snapRaster = i
       arcpy.env.cellSize = i
       arcpy.env.outputCoordinateSystem = i
 
-      arcpy.sa.Divide(i, sumPop).save(inGDB + os.sep + 'popAdj_' + str(i))
+      arcpy.sa.Con(i, acres_per_10k, i, "Value > 0").save(inGDB + os.sep + 'acresPer10k_' + str(i))
+      arcpy.sa.Con(i, area_pop, i, "Value > 0").save(inGDB + os.sep + 'popAdj_' + str(i))
 
       t1 = time.time()
       print('that took ' + str(t1 - t0) + ' seconds.')
@@ -78,17 +80,18 @@ def adjustServiceAreas(inGDB, popRast, rastPattern):
 
 def main():
    # population adjustment rasters (area / population)
-   popRast = r'E:\arcpro_wd\pop_data\Population_census\distribPop.tif'
+   popRast = r'E:\arcpro_wd\pop_data\Population_census\distribPop_noZeros.tif'
    rastPattern = "*_servArea"
    arcpy.env.workspace = r"E:\arcpro_wd"
-   # loop over GDBs. Put all results in one GDB
-   gdbl = arcpy.ListWorkspaces("*access_a_aswm*", "FileGDB")
+   # loop over GDBs. Put all results in same GDB
+   gdbl = arcpy.ListWorkspaces("access_t_tlnd_stateparks_uniq.gdb", "FileGDB")
 
    # loop over gdbs
    for m in gdbl:
       print(m)
       inGDB = m
       adjustServiceAreas(inGDB, popRast, rastPattern)
+
 
 if __name__ == '__main__':
    main()
