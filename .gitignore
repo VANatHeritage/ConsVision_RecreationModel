@@ -1,3 +1,4 @@
 # ignore compiled python
 *.pyc
+*_BAK.py
 info
