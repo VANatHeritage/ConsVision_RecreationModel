@@ -4,7 +4,7 @@ CreateAquaAccessPolys
 
 Created: 2017-06-20
 Last Updated: 2018-07-26
-
+Version: ArcGIS 10.3.1 / Python 2.7.13
 Author: David Bucklin
 
 The function RasterizeAll takes one or more feature layers representing aqautic areas, and rasterizes them into one layer

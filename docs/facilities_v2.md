@@ -64,10 +64,11 @@ From the National Hydrography Dataset (NHD):
     - definition query: `FTYPE IN ( 445, 460, 312 , 364, 336)`: BayInlet, Foreshore, SeaOcean, StreamRiver; CanalDitch
   - NHD Waterbody
     - definition query: `FTYPE IN ( 390, 436, 493)`: LakePond, Resevoir, Estuary
-
 - derived feature class *nhd_flowline* from :
   - NHD Flowline
     - definition query: `FTYPE IN ( 460, 558 ,336)`: ArtificialPath, StreamRiver, CanalDitch
+- All features were combined into a raster `aqua_rast` to represent surface waters
+  - From NHD Flowline, Dam/Weir features (`FTYPE = 343`) which were erased from `aqua_rast`
 
 
 
