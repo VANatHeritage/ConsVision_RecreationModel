@@ -3,14 +3,16 @@
 scoreRastLog
 
 Created: 2018-08
-Last Updated: 2018-09-07
+Last Updated: 2018-09-12
 ArcGIS version: ArcGIS Pro
 Python version: Python 3.5.3
 Author: David Bucklin
 
 Produce a score raster (integer from 1-100) using
 log10 adjustment from a continuous values raster,
-given optional maximum/minimum values.
+given an optional maximum value ('maxVal'), which
+is used as the baseline for scoring. Values at above
+maxVal are given a score of 100.
 
 Allows burn-in features, given a value specified in burnField, in two ways:
 burnSimple = True : features are burned in only, with values from 'burnField'.
@@ -99,19 +101,19 @@ def scoreRastLog(inRast, outRast, mask, maxVal = None, burnFeatures = None, burn
 
 def main():
 
-   # variables
-   for comp in ['a_agen','a_awct','a_aswm','a_afsh']:
-      # comp = 'a_agen'
-      maxVal = 10000  # maximum value (to =100 in final scoring) from values from inRast
+   # sub-components
+   for comp in ['a_aswm','a_afsh']:
+      maxVal = 100000  # maximum value (to =100 in final scoring) from values from inRast
       # optional
       burnFeatures = r'E:\arcpro_wd\rec_model_temp\input_recmodel.gdb\burn_waterareas'
       burnField = 'rast'
-      # burnFeatures = r'E:\arcpro_wd\rec_model_temp\pub_lands_terr_open.shp' # vatrails_cluster
-      # burnField = 'area_ha' # length_km
-      burnSimple = True  # True for aquatic burn in, just apply 101 value. False for applying scored burn (terrestrial only)
+      burnFeatures = r'E:\arcpro_wd\rec_model_temp\pub_lands_terr_open.shp' # vatrails_cluster
+      burnField = 'area_ha' # length_km
+      burnSimple = False  # True for aquatic burn in, just apply 101 value.
+      # False for applying distance-decay scored burn around features (terrestrial only)
 
       # shouldn't change
-      inRast = r'E:\arcpro_wd\sum_access_' + comp + '_serviceAreas.tif'
+      inRast = r'E:\arcpro_wd\score_rasts\raw_scores.gdb\sum_access_' + comp + '_serviceAreas'
       outRast = r'E:\arcpro_wd\score_rasts\rec_model_scores.gdb\score_' + comp + '_' + str(maxVal) + 'max'
       mask = r'E:\arcpro_wd\rec_model_temp\jurisbnd_lam.shp'
       gdb = r"E:\arcpro_wd\temp_gdb.gdb"
@@ -119,6 +121,23 @@ def main():
 
       # run fn
       scoreRastLog(inRast, outRast, mask, maxVal, burnFeatures, burnField, burnSimple)
+
+   ####
+
+   # component final score rasters
+   arcpy.env.workspace = r'E:\arcpro_wd\score_rasts\rec_model_scores.gdb'
+
+   # terrestrial
+   # take mean of two subs, but carry over 101 value from both subs
+   ls = ['score_t_ttrl_1000max', 'score_t_tlnd_100000max']
+   CellStatistics(ls, "MAXIMUM").save("tmax")
+   Int(Con("tmax", 101, CellStatistics(ls, "MEAN"), "Value = 101") + 0.5).save("score_terrestrial_mean_1")
+   garbagePickup(["tmax"])
+
+   # aquatic
+   # take the mean of 3 subs with known access type (awct, afsh, aswm), and then mwax of result and (agen) score
+   ls = ['score_a_awct_10000max', 'score_a_afsh_1000max', 'score_a_aswm_1000max']
+   Int(CellStatistics([CellStatistics(ls, "MEAN"), 'score_a_agen_10000max'], "MAXIMUM") + 0.5).save("score_aquatic_mean")
 
 if __name__ == '__main__':
    main()
