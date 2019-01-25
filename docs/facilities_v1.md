@@ -6,7 +6,11 @@ Author: David Bucklin
 
 Date: 2017-11-17
 
+Model Version 1, (draft) released 2017-11.
+
 [TOC]
+
+This document describes the workflow used to create access point datasets to recreational facilities (in [all_facil.sql](../sql/all_facil.sql)),, for use in the Virginia ConservationVision recreational model.
 
 ### Input data 
 
@@ -52,9 +56,10 @@ From VGIN:
 
 All feature classes were entered into a PostgreSQL geodatabase without modification, with the exception of **publiclands\_wgs**. This dataset was split into two tables:
 
--  *pub\_lands\_dissolve*, for terrestrial lands included the following "PUBACCESS" values: (open, open fee, open with restrictions, open/seasonal, weekends
+- *pub\_lands\_dissolve*, for terrestrial lands included the following "PUBACCESS" values: (open, open fee, open with restrictions, open/seasonal, weekends
   -  Exploded polygons were grouped if they were within 50m of one another
-  -  this new table was named **pub\_lands\_expl\_union**
+  - this new table was named **pub\_lands\_expl\_union**
+
 -  *pub\_lands\_dissolve\_aqua*, included "PUBACCESS" values: (Canoe only)
   -  In the database, pub\_lands\_dissolve\_aqua was merged with public fishing lakes, and all polygons in this set were grouped if they were within 50m of one another
   -  this new table was named **pub\_lands\_aqua\_union**
