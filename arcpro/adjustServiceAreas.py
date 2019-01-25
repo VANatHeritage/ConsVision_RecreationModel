@@ -33,15 +33,12 @@ def adjustServiceAreas(inGDB, popRast, rastPattern):
    if os._exists(file):
       os.remove(file)
    f = open(file, 'w')
-   f.write('fileName' + '\t' + 'score' + '\t' + 'pop_total' + '\t' + 'score_pop' + '\t' + 'acres_per10k' + '\n')
+   f.write('fileName' + '\t' + 'score' + '\t' + 'pop_total' + '\t' + 'score_pop' + '\t' + 'score_per10k' + '\n')
 
    for i in ls:
       print(i)
       t0 = time.time()
       arcpy.env.extent = i
-      #arcpy.env.snapRaster = popRast
-      #arcpy.env.cellSize = popRast
-      #arcpy.env.outputCoordinateSystem = popRast
 
       # make masked population raster
       msk = arcpy.sa.ExtractByMask(popRast, i)
@@ -56,17 +53,16 @@ def adjustServiceAreas(inGDB, popRast, rastPattern):
          sumPop = int(round(sumPop))
 
       # get area from service area raster
-      area_ha = float(arcpy.GetRasterProperties_management(i, "MAXIMUM").getOutput(0))
-      area_pop = area_ha/sumPop
-      acres_per_10k = (area_ha * 2.47105) / (sumPop/10000)
-      f.write(i + '\t' + str(area_ha) + '\t' + str(sumPop) + '\t' + str(area_pop) + '\t' + str(acres_per_10k) + '\n')
+      score = float(arcpy.GetRasterProperties_management(i, "MAXIMUM").getOutput(0))
+      score_pop = score/sumPop
+      score_per_10k = score / (sumPop/10000)
+      f.write(i + '\t' + str(score) + '\t' + str(sumPop) + '\t' + str(score_pop) + '\t' + str(score_per_10k) + '\n')
 
       arcpy.env.snapRaster = i
       arcpy.env.cellSize = i
       arcpy.env.outputCoordinateSystem = i
 
-      arcpy.sa.Con(i, acres_per_10k, i, "Value > 0").save(inGDB + os.sep + 'acresPer10k_' + str(i))
-      arcpy.sa.Con(i, area_pop, i, "Value > 0").save(inGDB + os.sep + 'popAdj_' + str(i))
+      arcpy.sa.Con(i, score_pop, i, "Value > 0").save(inGDB + os.sep + 'popAdj_' + str(i))
 
       t1 = time.time()
       print('that took ' + str(t1 - t0) + ' seconds.')
@@ -84,7 +80,7 @@ def main():
    rastPattern = "*_servArea"
    arcpy.env.workspace = r"E:\arcpro_wd"
    # loop over GDBs. Put all results in same GDB
-   gdbl = arcpy.ListWorkspaces("access_t_tlnd_stateparks_uniq.gdb", "FileGDB")
+   gdbl = arcpy.ListWorkspaces("access_t_ttrl*", "FileGDB")
 
    # loop over gdbs
    for m in gdbl:

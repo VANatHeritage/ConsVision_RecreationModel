@@ -20,7 +20,7 @@ points defining where local roads and limited
 access roads meet.
 
 Argument definitions:
-outGDB: Name of output geodatabase, is created during the process.
+outGDB: Name of output geodatabase, which is created during the process.
    Note that once 500 groups are processed, a new geodatabase with the
    same name plus a sequential number is created.
 accPts: Access features to run cost distance process on
@@ -170,15 +170,15 @@ def makeServiceAreas(outGDB, accPts, costRastLoc, costRastHwy, rampPts, rampPtsI
 
 def main():
    # Set up variables
-   outGDB = r'E:\arcpro_wd\access_a_afsh_serviceAreas.gdb'
-   accPts = r'E:\arcpro_wd\rec_model_temp\access_a_wAreas1km_afsh_2018_08_21.shp'
-   costRastLoc = r'E:\arcpro_wd\rec_model_temp\costSurf_no_lah.tif'
-   costRastHwy = r'E:\arcpro_wd\rec_model_temp\costSurf_only_lah.tif'
-   rampPts = r'E:\arcpro_wd\rec_model_temp\rmpt3.shp'
-   maxCost = 30   # in minutes
-   grpFld = 'gridcode' # group for access points (e.g., all points are related to one feature)
-   attFld = 'area_ha'
-   rampPtsID = 'UniqueID'  # unique ramp segment ID, since some ramps have multiple points
+   outGDB = r'E:\arcpro_wd\stateparks_4_20190117test_60min.gdb'
+   accPts = r'E:\arcpro_wd\rec_model_temp\access_t_tlnd_20180821_stateparks_uniq_4parks.shp'
+   costRastLoc = r'E:\RCL_cost_surfaces\VA_2017Q3\costSurf_no_lah.tif'
+   costRastHwy = r'E:\RCL_cost_surfaces\VA_2017Q3\costSurf_only_lah.tif'
+   rampPts = r'E:\RCL_cost_surfaces\VA_2017Q3\rmpt.gdb\rmpt_final'
+   maxCost = 60  # in minutes
+   grpFld = 'oid_'  # name of attribute field of group for access points (e.g., all points are related to one feature)
+   attFld = None  # (optional) name of attribute field containing value to assign to raster for the group
+   rampPtsID = 'UniqueID'  # unique ramp segment ID attribute field, since some ramps have multiple points
    makeServiceAreas(outGDB, accPts, costRastLoc, costRastHwy, rampPts, rampPtsID, maxCost, grpFld, attFld)
 
 if __name__ == '__main__':
