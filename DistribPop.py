@@ -9,7 +9,7 @@
 # Distributes population from census blocks or block groups to pixels assumed to be actually occupied, based on land cover or road density. Yields a raster representing persons per pixel.
 #
 # Usage:
-# Note that this script generates warnings, but seems to function as intended.
+# IMPORTANT NOTE: If blocks or other census units are clipped to a processing boundary, the population for the remaining polygon fragments MUST be adjusted prior to running a population distribution function. Example: If clipping results in 40% of a polygon's area remaining, the population value should be adjusted to 40% of the original value.
 #--------------------------------------------------------------------------------------
 # Import Helper module and functions
 import Helper

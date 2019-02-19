@@ -47,8 +47,8 @@ def MakeRouteLayer_bw(in_hydroNet):
    lyrBluewayTrace = hydroDir + os.sep + "naBluewayTrace.lyr"
    
    # Create route layer
-   # Restrict route generation to ArtificialPath flowlines using "r" variable
-   r = "NoCanalDitches;NoConnectors;NoPipelines;NoUndergroundConduits;NoCoastline;NoStreamRiver"
+   # Restrict route generation using "r" variable
+   r = "NoCanalDitches;NoConnectors;NoPipelines;NoUndergroundConduits;NoCoastline;NoStreamRiver;PreferArtificialPath"
    printMsg('Creating route analysis layer...')
    routeLayer = arcpy.MakeRouteLayer_na(in_network_dataset=nwDataset, 
       out_network_analysis_layer="naRoutes", 
