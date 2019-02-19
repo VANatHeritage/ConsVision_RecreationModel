@@ -133,13 +133,13 @@ def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir):
                                     out_rasterdataset = blockZones, 
                                     cell_assignment = "MAXIMUM_AREA", 
                                     priority_field = "NONE", 
-                                    cellsize = inLandCover)
+                                    cellsize = inRoadDens)
    
    # Get the sum of road density values by zone
    blockSumDens = tmpDir + os.sep + "blockSumDens"
    printMsg('Summing road density values within zones...')
    tmpRast = ZonalStatistics(blockZones, "Value", inRoadDens, "SUM", "DATA")
-   tmpRast.save(blockSumDev)
+   tmpRast.save(blockSumDens)
    
    # Get the proportional road density per pixel
    propDens = tmpDir + os.sep + "propDens"
@@ -159,13 +159,14 @@ def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir):
    
    # Get persons per pixel by distributing population according to proportional road density
    pixelPop = tmpDir + os.sep + "pixelPop.tif"
-   printMsg('Generating final output...')
+   printMsg('Distributing population according to road density...')
    tmpRast = Raster(blockPop)*Raster(propDens)
    tmpRast.save(pixelPop)
    
    # Set zeros to nulls
-   arcpy.env.mask = Blocks_prj
-   tmpRast = SetNull(Raster(pixelPop) == 0, pixelPop)
+   arcpy.env.mask = inRoadDens
+   printMsg('Setting zeros to null...')
+   tmpRast = SetNull(Raster(pixelPop) <= 0, pixelPop)
    tmpRast.save(outPop)
    
    printMsg('Finished.')
@@ -175,16 +176,14 @@ def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir):
 
 def main():
    # Set up variables
-   inBlocks = r'H:\Backups\GIS_Data_VA\TIGER\TABBLOCK_POPHU\2010\tabblock2010_51_pophu\tabblock2010_51_pophu_prj.shp'
-   fldPop = 'POP10'
-   inLandCover = r'H:\Backups\DCR_Work_DellD\GIS_Data_VA_proc\Finalized\NLCD_VA_2011ed.gdb\nlcd_2011_lc'
-   inImpervious = r'H:\Backups\DCR_Work_DellD\GIS_Data_VA_proc\Finalized\NLCD_VA_2011ed.gdb\nlcd_2011_imp'
-   inRoads = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\costSurf_only_lah.tif'
-   outPop = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\distribPop2.tif'
-   tmpDir = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TMP'
+   inBlocks = r'H:\Working\ACS_2016\ACS_2016_5yr_BG.shp'
+   fldPop = 'TotPop_clp'
+   inRoadDens = r'H:\Working\RecMod\RecModProducts.gdb\Roads_kdens_250'
+   outPop = r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
+   tmpDir = r'H:\Working\TMP'
    
    # Specify function to run
-   DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmpDir)
+   DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir)
 
 if __name__ == '__main__':
    main()
