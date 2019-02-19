@@ -2,11 +2,11 @@
 # DistribPop.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2018-10-03
-# Last Edit: 2018-10-05
+# Last Edit: 2019-02-19
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
-# Distributes population from census blocks to developed pixels, yielding a raster representing persons per pixel.
+# Distributes population from census blocks or block groups to pixels assumed to be actually occupied, based on land cover or road density. Yields a raster representing persons per pixel.
 #
 # Usage:
 # Note that this script generates warnings, but seems to function as intended.
@@ -16,8 +16,8 @@ import Helper
 from Helper import *
 from arcpy import env
 
-def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmpDir):
-   '''Distributes population from census blocks to developed pixels, yielding a raster representing persons per pixel.
+def DistribPop_nlcd(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmpDir):
+   '''Distributes population from census blocks to developed pixels based on NLCD land cover, yielding a raster representing persons per pixel.
    inBlocks = input shapefile delineating census blocks.
    fldPop = field within inBlocks designating the population for each block 
    inLandCover = NLCD land cover raster
@@ -102,7 +102,76 @@ def DistribPop(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmp
    printMsg('Finished.')
    return outPop
    
-# Use the main function below to run a function directly from Python IDE or command line with hard-coded variables
+def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir):
+   '''Distributes population from census blocks or other unit to pixels based on road density, yielding a raster representing persons per pixel.
+   inBlocks = input shapefile delineating census blocks, block groups, or other census unit.
+   fldPop = field within inBlocks designating the population for each block 
+   inRoadDens = raster representing road density
+   outPop = output raster representing population per pixel
+   tmpDir = directory to store intermediate files'''
+   
+   # Apply environment settings
+   arcpy.env.snapRaster = inRoadDens
+   arcpy.env.cellSize = inRoadDens
+   arcpy.env.extent = inRoadDens
+   arcpy.env.mask = inRoadDens
+   arcpy.env.outputCoordinateSystem = inRoadDens
+   
+   # Re-project census blocks to match road density raster
+   printMsg('Re-projecting census blocks...')
+   Blocks_prj = ProjectToMatch (inBlocks, inRoadDens)
+   
+   # Apply more environment settings
+   arcpy.env.mask = Blocks_prj
+   arcpy.env.extent = Blocks_prj
+   
+   # Convert census blocks to raster zones
+   blockZones = tmpDir + os.sep + "blockZones.tif"
+   printMsg('Converting census blocks to raster zones...')
+   arcpy.PolygonToRaster_conversion(in_features = Blocks_prj, 
+                                    value_field = "FID", 
+                                    out_rasterdataset = blockZones, 
+                                    cell_assignment = "MAXIMUM_AREA", 
+                                    priority_field = "NONE", 
+                                    cellsize = inLandCover)
+   
+   # Get the sum of road density values by zone
+   blockSumDens = tmpDir + os.sep + "blockSumDens"
+   printMsg('Summing road density values within zones...')
+   tmpRast = ZonalStatistics(blockZones, "Value", inRoadDens, "SUM", "DATA")
+   tmpRast.save(blockSumDev)
+   
+   # Get the proportional road density per pixel
+   propDens = tmpDir + os.sep + "propDens"
+   printMsg('Calculating proportional road density values...')
+   tmpRast = Raster(inRoadDens)/Raster(blockSumDens)
+   tmpRast.save(propDens)
+   
+   # Convert census blocks to raw population raster
+   blockPop = tmpDir + os.sep + "blockPop.tif"
+   printMsg('Converting census blocks to raw population raster...')
+   arcpy.PolygonToRaster_conversion(in_features = Blocks_prj, 
+                                    value_field = fldPop, 
+                                    out_rasterdataset = blockPop, 
+                                    cell_assignment = "MAXIMUM_AREA", 
+                                    priority_field = "NONE", 
+                                    cellsize = inRoadDens)
+   
+   # Get persons per pixel by distributing population according to proportional road density
+   pixelPop = tmpDir + os.sep + "pixelPop.tif"
+   printMsg('Generating final output...')
+   tmpRast = Raster(blockPop)*Raster(propDens)
+   tmpRast.save(pixelPop)
+   
+   # Set zeros to nulls
+   arcpy.env.mask = Blocks_prj
+   tmpRast = SetNull(Raster(pixelPop) == 0, pixelPop)
+   tmpRast.save(outPop)
+   
+   printMsg('Finished.')
+   return outPop
+   
+
 
 def main():
    # Set up variables
