@@ -2,7 +2,7 @@
 # AssessRecOpps.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2018-10-04
-# Last Edit: 2018-10-17
+# Last Edit: 2019-02-22
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -160,7 +160,54 @@ def AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, 
    printMsg('Finished.')
    return (RecScore, RecNeed)
    
-# Use the main function below to run functions directly from Python IDE or command line with hard-coded variables
+def TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outScore, minTime = 10, maxTime = 30, limitTime = 30):
+   '''Given input targets (e.g., public access lands or trails) and a cost surface, generates a raster representing the travel time in minutes to the nearest target. Also creates a score raster by linearly rescaling the travel time raster to a score from 0 to 100. Intended for use to determine local, pedestrian access.
+   Parameters:
+   - inTargets = Input point, line or polygon feature class representing targets to be accessed
+   - inCostSurf = Input raster representing the time, in minutes, required to travel 1 meter
+   - inSnapRaster = Input raster used to define coordinate system, cell size, and pixel alignment
+   - inMask = Input raster or feature class used to define processing extent and analysis area
+   - outTravTime = Output raster representing travel time, in minutes, to nearest target
+   - outScore = Output raster representing travel time as a score from 0 to 100
+   - minTime = Travel time, in minutes, below which the score should be set to 100
+   - maxTime = Travel time, in minutes, above which the score should be set to 0
+   - limitTime = Maximum travel time, in minutes, to be used in analysis. Any pixel more than this travel time from a target will have NoData in the OutTravTime raster, and will be set to zero in the OutScore raster
+   '''
+   
+   # Set up processing environment
+      arcpy.env.extent = inMask
+      arcpy.env.mask = inMask
+      arcpy.env.cellSize = inSnapRaster
+      arcpy.env.snapRaster = inSnapRaster
+      cellSize = arcpy.env.cellSize
+      scratchGDB = arcpy.env.scratchGDB
+      printMsg('Scratch products are being written to %s' %scratchGDB)
+   
+   # Convert features to raster according to shape type
+   arcpy.AddField_management (inTargets, "RasterVal", "SHORT")
+   arcpy.CalculateField_management (inTargets, "RasterVal", "1")
+   Targets = scratchGDB + os.sep + 'Targets'
+   desc = arcpy.Describe(inTargets)
+   shapeType = desc.shapeType
+   if shapeType in ('Point, Multipoint'):
+      arcpy.PointToRaster_conversion (inTargets, "RasterVal", Targets, "MAXIMUM", "RasterVal", cellSize)
+   elif shapeType == 'Polyline':
+      PolylineToRaster_conversion (inTargets, "RasterVal", Targets, "MAXIMUM_COMBINED_LENGTH", "RasterVal", cellSize)
+   elif shapeType == 'Polygon':
+      arcpy.PolygonToRaster_conversion (inTargets, "RasterVal", Targets, "MAXIMUM_COMBINED_AREA", "RasterVal", cellSize)
+   else:
+      printErr('Not sure to do with this feature type. Aborting...')
+      
+   # Determine travel time to targets
+   travTime = CostDistance (Targets, inCostSurf, limitTime)
+   travTime.save(outTravTime)
+   
+   # Convert travel times to scores
+   score = Con((travTime < minTime),100,Con((travTime > maxTime),0, 100*((maxTime - travTime)/(maxTime - minTime))))
+   scoreNoNulls = Con(IsNull(score),0,score)
+   scoreNoNulls.save(outScore)
+   
+   return (outTravTime, outScore)     
 
 def GenRecNeed(inMask, inRecNeed, outDir, outBasename):
    '''Generalizes the Recreation Need Raster
@@ -192,21 +239,17 @@ def GenRecNeed(inMask, inRecNeed, outDir, outBasename):
    printMsg('Finished.')
    
 def main():
+   # Kirsten's Stuff
    # Set up variables
-   inPop = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\distribPop_noZeros.tif'
-   inBenchVal = 0.004
-   inRecPP = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\RecModScores\raw_scores.gdb\popAdj_sum_access_t_tlnd_serviceAreas'
-   inPubAccess = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\PublicAccessLands.tif'
-   outDir = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM'
-   outBasename = "TerrArea_1012b"
-   inMask = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\Terr_RecAccessScore.tif'
-   inRecNeed = r'C:\Users\xch43889\Documents\Working\ConsVision\RecMod\TIF_VALAM\TerrArea_1012_RecNeed.tif'
-      
-   # Specify function(s) to run
-   # QuantRecOpps(inDir, inPop, outRecPP, tmpDir, zeroRast = '')
-   # AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, inMask)
-   GenRecNeed(inMask, inRecNeed, outDir, outBasename)
+   inTargets = r'F:\Working\RecMod\FinalDataToUse\rec_source_datasets.gdb\pub_lands_final_20190221'
+   inCostSurf = r'F:\Working\RecMod\FinalDataToUse\cost_surfaces_Tiger_2018\cost_surfaces.gdb\costSurf_walk'
+   inSnapRaster = r'F:\Working\Snap_AlbersCONUS30\Snap_AlbersCONUS30.tif'
+   inMask = r'F:\Working\VA_Buff50mi\VA_Buff50mi.shp'
+   outTravTime = r'F:\Working\RecMod\Outputs\WalkTimeParks.tif'
+   outScore = r'F:\Working\RecMod\Outputs\WalkScoreParks.tif'
    
+   # Specify function(s) to run
+   TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outScore, minTime = 10, maxTime = 30, limitTime = 30)
 
 if __name__ == '__main__':
    main()
