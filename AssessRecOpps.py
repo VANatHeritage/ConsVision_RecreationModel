@@ -16,6 +16,44 @@ import Helper
 from Helper import *
 from arcpy import env
 
+def FeatToRaster(inFeatures, inSnapRaster, inMask, outRaster):
+   '''Given point, line, or polygon features, generates a raster representing those features
+   Parameters:
+   - inFeatures = Input point, line, or polygon feature class
+   - inSnapRaster = Input raster used to define coordinate system, cell size, and pixel alignment
+   - inMask = Input raster or feature class used to define processing extent and analysis area
+   - outRaster = Output raster representing input features
+   '''
+   
+   # Set up processing environment
+   arcpy.env.extent = inMask
+   arcpy.env.mask = inMask
+   arcpy.env.cellSize = inSnapRaster
+   arcpy.env.snapRaster = inSnapRaster
+   cellSize = arcpy.env.cellSize
+   scratchGDB = arcpy.env.scratchGDB
+   printMsg('Scratch products are being written to %s' %scratchGDB)
+   
+   # Convert features to raster according to shape type
+   printMsg('Converting features to a raster...')
+   arcpy.AddField_management (inFeatures, "RasterVal", "SHORT")
+   arcpy.CalculateField_management (inFeatures, "RasterVal", "1", "PYTHON")
+   desc = arcpy.Describe(inFeatures)
+   shapeType = desc.shapeType
+   if shapeType in ('Point, Multipoint'):
+      arcpy.PointToRaster_conversion (inFeatures, "RasterVal", outRaster, "MAXIMUM", "RasterVal", cellSize)
+   elif shapeType == 'Polyline':
+      arcpy.PolylineToRaster_conversion (inFeatures, "RasterVal", outRaster, "MAXIMUM_COMBINED_LENGTH", "RasterVal", cellSize)
+   elif shapeType == 'Polygon':
+      arcpy.PolygonToRaster_conversion (inFeatures, "RasterVal", outRaster, "MAXIMUM_COMBINED_AREA", "RasterVal", cellSize)
+   else:
+      printErr('Not sure to do with this feature type. Aborting...')
+      
+   printMsg('Finished.')
+   
+   return outRaster
+
+   
 def QuantRecOpps(inDir, inPop, outRecPP, tmpDir, zeroRast = ''):
    '''Quantifies recreation opportunities accessed per person, based on facilities' service areas and population.
    
@@ -137,9 +175,9 @@ def AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, 
    
    RecPP = outDir + os.sep + outBasename + "_RecPP.tif"
    if arcpy.Exists(RecPP):
-      printMsg('Per-person recreation raster already exists. Proceeding to next step...')
+      printMsg('Per-person recreation raster with nulls eliminated already exists. Proceeding to next step...')
    else:
-      printMsg('Updating per-person recreation raster...')
+      printMsg('Updating per-person recreation raster to eliminate nulls...')
       tmpRast0 = Con(IsNull(inRecPP), 0, inRecPP)
       tmpRast0.save(RecPP)
    
@@ -160,10 +198,10 @@ def AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, 
    printMsg('Finished.')
    return (RecScore, RecNeed)
    
-def TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outScore, minTime = 10, maxTime = 30, limitTime = 30):
-   '''Given input targets (e.g., public access lands or trails) and a cost surface, generates a raster representing the travel time in minutes to the nearest target. Also creates a score raster by linearly rescaling the travel time raster to a score from 0 to 100. Intended for use to determine local, pedestrian access.
+def TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outScore, minTime = 10, maxTime = 30, limitTime = 30, outTargets):
+   '''Given rasterized input targets (e.g., public access lands, trails, or access points) and a cost surface, generates a raster representing the travel time in minutes to the nearest target. Also creates a score raster by linearly rescaling the travel time raster to a score from 0 to 100. Intended for use to determine local, pedestrian access.
    Parameters:
-   - inTargets = Input point, line or polygon feature class representing targets to be accessed
+   - inTargets = Input raster representing targets to be accessed
    - inCostSurf = Input raster representing the time, in minutes, required to travel 1 meter
    - inSnapRaster = Input raster used to define coordinate system, cell size, and pixel alignment
    - inMask = Input raster or feature class used to define processing extent and analysis area
@@ -183,25 +221,9 @@ def TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outSc
    scratchGDB = arcpy.env.scratchGDB
    printMsg('Scratch products are being written to %s' %scratchGDB)
    
-   # Convert features to raster according to shape type
-   printMsg('Converting features to a target raster...')
-   arcpy.AddField_management (inTargets, "RasterVal", "SHORT")
-   arcpy.CalculateField_management (inTargets, "RasterVal", "1", "PYTHON")
-   Targets = scratchGDB + os.sep + 'Targets'
-   desc = arcpy.Describe(inTargets)
-   shapeType = desc.shapeType
-   if shapeType in ('Point, Multipoint'):
-      arcpy.PointToRaster_conversion (inTargets, "RasterVal", Targets, "MAXIMUM", "RasterVal", cellSize)
-   elif shapeType == 'Polyline':
-      arcpy.PolylineToRaster_conversion (inTargets, "RasterVal", Targets, "MAXIMUM_COMBINED_LENGTH", "RasterVal", cellSize)
-   elif shapeType == 'Polygon':
-      arcpy.PolygonToRaster_conversion (inTargets, "RasterVal", Targets, "MAXIMUM_COMBINED_AREA", "RasterVal", cellSize)
-   else:
-      printErr('Not sure to do with this feature type. Aborting...')
-      
    # Determine travel time to targets
    printMsg('Creating travel time raster. Patience please...')
-   travTime = CostDistance (Targets, inCostSurf, limitTime)
+   travTime = CostDistance (inTargets, inCostSurf, limitTime)
    travTime.save(outTravTime)
    
    # Convert travel times to scores
@@ -256,7 +278,8 @@ def GenRecNeed(inMask, inRecNeed, outDir, outBasename):
 def main():
    # Kirsten's Stuff
    # Set up variables
-   inTargets = r'F:\Working\RecMod\FinalDataToUse\rec_source_datasets.gdb\pub_lands_final_20190221'
+   inTargets_parks = r'F:\Working\RecMod\FinalDataToUse\rec_source_datasets.gdb\pub_lands_final_20190221'
+   parksRaster = r'F:\Working\RecMod\Outputs\Products.gdb\allParks_raster'
    #inTargets = r'F:\Working\RecMod\FinalDataToUse\rec_source_datasets.gdb\trails_include_20190221'
    inCostSurf = r'F:\Working\RecMod\FinalDataToUse\cost_surfaces_Tiger_2018\cost_surfaces.gdb\costSurf_walk'
    inSnapRaster = r'F:\Working\Snap_AlbersCONUS30\Snap_AlbersCONUS30.tif'
@@ -265,9 +288,22 @@ def main():
    #outTravTime = r'F:\Working\RecMod\Outputs\Products.gdb\WalkTime_Trails2'
    outScore = r'F:\Working\RecMod\Outputs\Products.gdb\WalkScore_Parks2'
    #outScore = r'F:\Working\RecMod\Outputs\Products.gdb\WalkScore_Trails2'
+   inBenchVal_parks = 0.010 # acres/person
+   inPop = 
+   inRecPP_parks =
+   outDir = 
+
+   
    
    # Specify function(s) to run
-   TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outScore, minTime = 10, maxTime = 30, limitTime = 30)
+   #TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outScore, minTime = 10, maxTime = 30, limitTime = 30)
+   #AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, inMask = None)
+   
+   # Convert features to raster
+   FeatToRaster(inTargets_parks, inSnapRaster, inMask, parksRaster)
+   
+   # RecOpps for parks:
+   AssessRecOpps(inBenchVal_parks, inPop, inRecPP_parks, parksRaster, outDir, "parks", inMask)
 
 if __name__ == '__main__':
    main()
