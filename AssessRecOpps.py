@@ -198,7 +198,7 @@ def AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, 
    printMsg('Finished.')
    return (RecScore, RecNeed)
    
-def TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outScore, minTime = 10, maxTime = 30, limitTime = 30, outTargets):
+def TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outScore, minTime = 10, maxTime = 30, limitTime = 30):
    '''Given rasterized input targets (e.g., public access lands, trails, or access points) and a cost surface, generates a raster representing the travel time in minutes to the nearest target. Also creates a score raster by linearly rescaling the travel time raster to a score from 0 to 100. Intended for use to determine local, pedestrian access.
    Parameters:
    - inTargets = Input raster representing targets to be accessed
@@ -289,9 +289,9 @@ def main():
    outScore = r'F:\Working\RecMod\Outputs\Products.gdb\WalkScore_Parks2'
    #outScore = r'F:\Working\RecMod\Outputs\Products.gdb\WalkScore_Trails2'
    inBenchVal_parks = 0.010 # acres/person
-   inPop = 
-   inRecPP_parks =
-   outDir = 
+   inPop = r'F:\Working\RecMod\FinalDataToUse\RoadsPopProducts.gdb\distribPop_kdens'
+   inRecPP_parks = r'F:\Working\RecMod\FinalDataToUse\raw_summary_scores.gdb\popAdj_sum_t_tlnd_serviceAreas'
+   outDir = r'F:\Working\RecMod\Outputs'
 
    
    
@@ -300,7 +300,7 @@ def main():
    #AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, inMask = None)
    
    # Convert features to raster
-   FeatToRaster(inTargets_parks, inSnapRaster, inMask, parksRaster)
+   #FeatToRaster(inTargets_parks, inSnapRaster, inMask, parksRaster)
    
    # RecOpps for parks:
    AssessRecOpps(inBenchVal_parks, inPop, inRecPP_parks, parksRaster, outDir, "parks", inMask)
