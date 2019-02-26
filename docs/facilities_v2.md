@@ -1,16 +1,20 @@
-## Virginia Recreation Access Model, access points to recreational facilities workflow
+## Virginia Recreation Access Model, access points workflow
 
-DCR-DNH
+*DCR-DNH*
 
-Author: David Bucklin
+*Author: David Bucklin*
 
-Date: 2018-07-26
+*Date: 2018-07-26*
 
-Model Version 2.
+*Model Version 2.*
+
+---
 
 [TOC]
 
-This document describes the workflow used to create access point datasets to recreational facilities (in [rec_access.sql](../sql/rec_access.sql)), for use in the Virginia ConservationVision recreational model.
+---
+
+This document describes the workflow used to create access point datasets to recreational facilities (in [rec_access.sql](../sql/rec_access.sql)), for use in the Virginia ConservationVision Recreation Access Model.
 
 
 
@@ -18,17 +22,19 @@ This document describes the workflow used to create access point datasets to rec
 
 #### Recreation Input datasets
 
-From Virginia Outdoors Plan (VOP) Mapper:
+From DCR (PRR and DNH), datasets for Virginia Outdoors Plan (VOP) Mapper:
 
-- publiclands\_wgs (Polygon)
-  - Represents all public lands in Virginia, with a 'pubaccess' column specifying level of access
-- VA\_public\_access (Point)
+- VA_PUBLIC_ACCESS_LANDS (Polygon)
+  - Represents all public lands in Virginia, with a 'ACCESS' column specifying level of access generally; 'PUBACCESS' has a bit more specifics
+- 2018 Public Access (Point)
   - public-access recreation sites and amenities. Includes attributes which indicate specific types of activities available.
 
-From Virginia Dept. of Conservation &amp; Recreation, Division of Planning & Recreation Resources (DCR-PRR):
-
-- vatrails (Line)
-- vatrailheads (Point)
+- VATrails_2017 (Line)
+- VATrailheads_2017 (Point)
+- *Local_Park_Inventory_2018 (need to decide if using)*
+  - This point dataset has attributes on facilities at parks. It appears to be centroids, not spatially precise on location of the facilities, but it has a lot of useful attributes
+- Watertrails2017 
+  - sent by Robbie Rhur (DCR PRR) 2/2019, updated for that date
 
 From Virginia Dept. of Game and Inland Fisheries (VDGIF):
 
@@ -45,15 +51,15 @@ From Virginia Institute of Marine Science (VIMS):
 
 #### Road centerline data
 
-From Virginia Geographic Information Network (VGIN):
+From U.S. Census Tiger/Line:
 
-- Virginia\_RCL\_Dataset\_2017Q3.gdb (Line)
+- Tiger_2018.gdb (Line)
 
 > Note: the following road types were excluded from all analyses:
 >
-> mtfcc IN ('S9999','S1710','S1720','S1740','S1820','S1830','S1500')
+> mtfcc IN ('S1710','S1720','S1740','S1750')
 >
-> This excludes driveways, walkways/ped. trails, stairways, service vehicle private drives, bike paths/trails, bridle paths, 4wd vehicular trails.
+> This excludes pedestrian-only, private, and U.S. Census Internal types.
 
 #### Aquatic features 
 
@@ -74,47 +80,150 @@ From the National Hydrography Dataset (NHD):
 
 ### Data pre-processing
 
-Several recreational datasets were modified before use in the model workflow:
+#### Point datasets: attributing access types
+
+Point features are considered **Recreational Access Points**. Each point dataset was attributed with six binary fields indicating if they could be used for access for a given sub-type. 
+
+The subtypes are:
+
+- **a_awct** : watercraft (motorboat, kayak, canoe, etc.) access
+- **a_afsh**: fishing access 
+- **a_aswm**: swimming access (*pools not included*)
+- **a_agen***: general aquatic access
+- **t_ttrl***: terrestrial trails access
+- **t_tlnd***: public lands access
+
+> Subtypes marked with (*) are potential access points that would need to be associated with a recreation feature (e.g., fishing lake, public land, trail) in order to be used in the final model.
+
+The point datasets:
+
+1. WMA_Points
+   - a_awct: `TYPE = Boat Ramp`
+   - a_afsh: ` TYPE = Fishing Pier`
+   - t_ttrl and t_tlnd: `TYPE IN ('Gate', 'Seasonal Gate', 'Parking')`
+2. 2018_Public_Access
+   - a_awct:`BOAT_RAMP = 'Y' or Launch > 0`
+   - a_afsh: `FISHING = 'Y'`
+   - a_aswm: `SWIMMING = 'Y'`
+   - a_agen: all points that were not associated with another aquatic sub-type
+   - t_ttrl: all points
+   - tlnd: all points
+3. VDGIF_Maintained_Boating_Access_Locations
+   - a_awct: all points
+4. boataccess_WGS
+   - a_awct: all points
+5. Local_Park_Inventory_2018
+   - a_awct: `WATER_ACCESS in ('CANOE SLIDE','BOAT RAMP', 'ALL')`
+   - a_afsh: `WATER_ACCESS in ('PIER', 'ALL')`
+   - a_afsh: `SWIMMING_AREA = 'BEACH'`
+     - note: there is also a POOL category
+   - t_ttrl: `TRAIL_TYPE IN ('BIKE', 'FITNESS', 'HIKING', 'HORSE', 'MULTI-USE')`
+   - tlnd: *Special Workflow*:
+     - These points were divided into **associated** or **unassociated** with public lands polygons
+     - associated points met one or more of the criteria:
+       - wtihin 100m of a public land polygon
+       - [within 2000m AND name matches polygon name AND sizes are within 10 acres of one another]
+     - unassociated points were assigned an area using `park_acres`
+       - empty or 0-areas were assigned a default 0.25-acre value
+       - generated circle (buffer) polygons around these points, according to area assigned to the point
+       - new table is `local_parks_areas`
+6. VATrailheads_2017
+   - a_agen: all points
+   - t_ttrl: all points
+   - t_tlnd: all points
+7. Birding_and_Wildlife_Trail_Sites
+   - a_agen: all points
+   - t_ttrl: all points
+   - t_tlnd: all points
+
+
+
+#### Polygon/line datasets: cleaning
+
+Polygon and line feature were considered **Recreational Features**, as opposed to recreational access points. Several recreational datasets were modified before use in the model workflow:
 
 - *pub\_lands\_dissolve*
-  - Public lands (from *publiclands_wgs*) were given an attribute `acs_simple` based on the `pubaccess` field in the original dataset, with 3 options: `open`, `limited`, or `water`
-  - They were then dissolved based on `acs_simple`, into single-part polygons (no multi-part polygons)
-  - ArcMap Identity tool used to identify aquatic areas (using *nhd_area_wtrb*) within public lands, and attributed in a new `water` binary field (0 / 1)
-  - Layer used in analysis is *pub_lands_terr_open* which is defined by the query: `acs_simple in ('open','water') and water = 0`.
+  -  In ArcMap:
+    - used the query `ACCESS <> 'BY PERMISSION'` 
+    - dissolved into single-part polygons (no multi-part polygons)
+    - ArcMap Identity tool used to identify aquatic areas (using *nhd_area_wtrb*) within public lands, and attributed in a new `water` binary field (0 / 1). Dissolved again by original single-part ID and water, allowing mutli-part polygons where waters within the a public access land boundary separate them.
+  -   `pub_lands_dissolve` merged with `local_parks_areas` (buffered local park points) in new table `pub_lands_final`
+     -  excluded water areas using `water = 0`.
+  -  `pub_lands_final` used as final layer for public lands component
+
 - *public_beaches_polys*
-  - These were digitized based on the line features in *public_beaches*, roughly encompassing the area from low tide to the edge of the sand
+  - These were digitized based on the line features in *public_beaches*, roughly encompassing the area from low tide to the edge of the sand upslope
+  - UPDATE: Not using these in the model. Using original lines instead.
+
 - *stocked_trout_reaches*
-  - merged into new multi-part lines based on contiguity (intersecting)
-  - resulting table is *stocked_trout_reaches_diss*
+  - In Postgres:
+    - merged into new multi-part lines based on separation distance of quarter mile
+    - resulting table is *stocked_trout_reaches_diss*
+  - Association with access points: Any access point (for any facil_code) can be associated with a reach.
+
 - *vatrails*
-  - merged into new trail multi-part line features ("clusters") based on distance (within 50m of one another)
-  - resulting table is *va_trails_cluster*
+  - In ArcMap:
+    - ArcMap Identity was used to attribute areas `on_road`.
+      - this query selects those road surfaces that *can* cut trails:`(mtfcc in ('S1100', 'S1200', 'S1630')) or (mtfcc not in ('S1500', 'S1710', 'S1720', 'S1820', 'S1830') AND LOCAL_SPEED_MPH > 15)`
+        - Note: Road surfaces used a Virginia RCL dataset (2017Q3), instead of Tiger for this procedure, since more detailed attributes were available for Virginia RCL.
+      - Note: manually reset some Great Dismal Swamp NWR trails to on_road = 0 after consulting [FWS map](https://www.fws.gov/uploadedFiles/GreatDismalSwampTrails%204-16.pdf)
+    - ArcMap Identity was used to attribute areas `on_nhdwater`.  In review, trails that were identified as potential water trails were marked `waterTrail = 1`.
+    - ArcMap Identity was used to attribute areas `on_openpubland`.  
+      - This will not be used to exclude trails
+    - Other trails that were suspect were marked accordingly in the `QC` column.
+      - Trails on 'BY_PERMISSION' public lands were reviewed and marked 'Restricted'
+      - Trails suspected to not exist marked 'NotExist?' and confirmed 'Proposed'
+      - Non-exact duplicates marked 'Duplicate', when found
+      - TrailStatus = 'Closed' marked as 'Closed'
+    - ~~Uses left-buffering process to remove near-duplicate trails (see [arcpro/trails_dupremove.py](.))~~
+    - Used Integrate tool with a tolerance of 1-meter to clean up trails.
+      - This doesn't remove duplicates, but puts them directly on top of one another. Allows to retain attributes of individual lines.
+  - In Postgres:
+    - removed exact duplicates and dumped to single-part linestrings in **trails_clean**
+    - added field `exclude` with values:
+      - W = excluded b/c in water
+      - R = excluded b/c in road
+      - P = excluded b/c in "by permission" land
+      - N = excluded b/c believed non-existent (e.g., proposed)
+      - D = excluded b/c visually identified as duplicate
+      - C = excluded b/c trail marked as closed in original dataset
+      - I = include (default normal trails with no reason to exclude)
+    - Only used `exclude = 'I'` in further analysis
+      - These trails were dissolved to remove any further duplication. This is table: **trails_include**
+      - merged **trails_include** into new trail multi-part line features ("networks") based on distance (within 402.5 m of one another)
+        - **Decision: what should the minimum total network length be for inclusion in the model?**
+          - tentatively 1-mile; this will be resolved in survey
+        - This is table **trails_clean_network**
+
 - *pub_fish_lake* 
-  - dumped into single polygons, since some distinct lakes were joined as multi-part polygons in original dataset
-  - resulting table is *pub_fish_lake_dump*
+  - In Postgres:
+    - dumped into single polygons, since some distinct lakes were joined as multi-part polygons in original dataset
+    - Then into multi-polygons based on separation distance of quarter mile
+    - resulting table is *pub_fish_lake_dump*
+    - Association with access points: Any access point (for any facil_code) can be associated with a lake.
 
 
 
-### Generating recreational access points from recreation datasets
 
-From recreation source features, points of access were determined.
+### Combining access points from recreation datasets
 
-We divided recreational facilities into two groups: terrestrial and aquatic. The following describes methods and rules used to generate access points for each input dataset.
+From recreation source features, points of access were combined into final tables `access_t` (terrestrial) and `access_a` (aquatic). The following describes methods and rules used for populating these tables. 
 
-Note that the **same exact point can get used multiple times, if it is associated with different types of access** (different *facil_code* values); e.g., one access point may lead to facilities for boat access, swimming, and fishing in the same general location.
+The **same exact point can get used multiple times, if it is associated with different types of access** (different *facil_code* values); e.g., one access point may lead to facilities for trails, boat access, swimming, and fishing in the same general location.
 
-> Note: All methods where facilities were associated with a road (intersecting, or closest point on a facility to a road) excluded limited access roads [mftcc IN ('S1100','S1100HOV','S1640')].
+> Note: All methods where facilities were associated with a road (intersecting, or closest point on a facility to a road) excluded limited access roads and ramps [`mftcc IN ('S1100','S1630')`].
 
-#### Terrestrial facilities
+#### Access point tables
 
-All terrestrial access points were input into table ***access_t***, which has the following fields:
+All access points were input into tables ***access_t/access_a*** (for terrestrial and aquatic, respectively) which have the following fields:
 
-* access_t_id: unique table ID
+* [acs_t_id]/[acs_a_id]: unique table ID
 * facil\_code: type of recreation associated with access point, includes following types:
   * *tlnd*: access points to public lands
   * *ttrl*: access points to trails
+* facil_rid: unique ID  in a temporary combined table for access points for a particular `facil_code`
 * src\_table: table of source feature from which the facility point was generated
-* src\_id: ID/primary key of source feature in src\_table
+* src\_id: ID/primary key of source feature in `src_table`
 * src\_cid: combination of source table code name and source table ID
 * join_table: the joined public land or trails table with which the point is associated
 * join_fid: the ID of the feature from the joined table with which the point is associated
@@ -122,159 +231,81 @@ All terrestrial access points were input into table ***access_t***, which has th
   * This was area in HA (dissolved public lands) or length in KM (trail clusters)
 * use: numeric identifying attributes regarding further use in model
   * **0**: don't use
-    * This was used for points which were not within 500m of public lands or trails
   * **1**: use
-  * **2**: use (this is an identifier for useable points that were 'generated', rather than known points of access from a source table)
-* use\_why: Reason/method for including the point in analysis
+  * **2**: use (this is an identifier for usable points that were 'generated', rather than known points of access from a source table)
+* use\_why: Reason/method for including/excluding the point in analysis
   * populated during point creation, with reasoning for associated *use* value
 * road\_dist: distance from point to nearest road
-* geom: the point geometry
+* geom: the point geometry (Albers CONUS; EPSG=5070)
+
+
 
 ##### Point generation methods for inclusion in access_t:
 
-> Notes: excluded from analysis public lands polygons with area < 0.1 hectares.
->
-> Excluded all trail clusters with a length less than 500m.
+> Note: Public land parcels < 5 acres, and trail networks < 1 mile were not considered in this part of the analysis
 
-1. Trailheads
+1. Point for source datasets were added with their assigned `facil_code`, if they were within a quarter mile of a recreation feature for that `facil_code` (a public land or trail network).
+2. Public lands parcels (pub_lands_final):
+   - for polygons not already associated with an access point, generated ***one point each***:
+     - for polygons intersecting roads - the closest point on road intersections to the polygon centroid
+     - for polygons not intersecting roads - the closest point on the polygon boundary to a road
+3.  Trail networks
+   - for trail clusters not already associated with an access point, generated ***one point each***:
+     - for trail networks intersecting roads - the closest point on trail/road intersections to the trail network centroid
+     - for trail networks not intersecting roads - the closest point on the trails to a road
 
-    * **tlnd** facil_code: Included points that were associated with *pub_lands_dissolve*, or the nearest one up to a distance of 500m
-    * **ttrl** facil_code: Included points that were associated with *vatrails_cluster*, or the nearest one up to a distance of 500m
-
-2. BWT sites
-
-    * **tlnd** facil_code: Included points that were associated with *pub_lands_dissolve*, or the nearest one up to a distance of 500m
-    * **ttrl** facil_code: Included points that were associated with *vatrails_cluster*, or the nearest one up to a distance of 500m
-
-3. va_public_access
-
-    - **tlnd** facil_code: Included points that were associated with *pub_lands_dissolve*, or the nearest one up to a distance of 500m
-    - **ttrl** facil_code: Included points that were associated with *vatrails_cluster*, or the nearest one up to a distance of 500m
-
-4. wma_points
-
-    - **tlnd** facil_code: Included points that were associated with *pub_lands_dissolve*, or the nearest one up to a distance of 500m
-    - **ttrl** facil_code: Included points that were associated with *vatrails_cluster*, or the nearest one up to a distance of 500m
-
-5. Public lands (pub\_lands\_expl\_union)
-
-    * **tlnd** facil_code:
-      * for polygons not already associated with an access point, generated ***one point each***:
-        * for polygons intersecting roads - the closest point on road intersections to the polygon centroid
-        * for polygons not intersecting roads - the closest point on the polygon boundary to a road
-
-6. Trail clusters
-
-    - **ttrl** facil_code:
-      - for trail clusters not already associated with an access point, generated ***one point each***:
-        - for trails intersecting roads - the closest point on road intersections to the trail cluster centroid
-        - for trails not intersecting roads - the closest point on the trails to a road
+The field `join_score` is the **area in acres** (public lands) or **length in miles** (trail networks) of the associated recreation feature.
 
 
-#### Aquatic facilities
-
-All aquatic facilities were input into table ***access_a***, which has the following fields:
-
-- access_a_id: unique table ID
-- facil\_code: type of recreation associated with access point, includes following types:
-  - *afsh*: access points to known fishing areas
-  - *aswm*: access points with known swimming areas
-  - *awct*: access points with known watercraft access (boat ramps, landings, etc.)
-  - *agen*: other general known access points, but unknown which facilities are available
-- src\_table: table of source feature from which the facility point was generated
-- src\_id: ID/primary key of source feature in src\_table
-- src\_cid: combination of source table code name and source table ID
-- join_table: the joined aquatic features table with which the point is associated
-- join_fid: the ID of the feature from the joined table with which the point is associated
-- join_score: the 'score' of the feature from the joined table with which the point is associated
-  - This was area in HA (aquatic areas)
-- use: numeric identifying attributes regarding further use in model
-  - **0**: don't use
-  - **1**: use
-  - **2**: use (this is an identifier for useable points that were 'generated', rather than known points of access from a source table)
-- use\_why: Reason/method for including the point in analysis
-  - populated during point creation, with reasoning for associated *use* value
-- road\_dist: distance from point to nearest road
-- geom: the point geometry
 
 ##### Point generation methods for inclusion in access_a:
 
-> Notes: Points in access_a were joined with either nhd_area_wtrb or nhd_flowline, depending on which they were closer to. In addition, a distance cutoff from the water feature (varies by table) was used to determine if the point should be used in the model
+1. Points for source datasets were added with their assigned `facil_code`.
 
-1. va_public access:
+2. Public fishing lakes
 
-   - this layer had the attributes [boat_ramp, fishing, swimming], which were used to determine facil_code. All points not included in any of those classes were assigned the general facil_code *agen*.
-   - included points within 300m of an aquatic feature - point snapped to aquatic feature boundary
-2. boat_access
+   - were grouped using a quarter-mile grouping distance
 
-   - facil_code = *awct*
-   - included points within 300m of an aquatic feature - point snapped to aquatic feature boundary
-3. BWT sites
+   - for lakes not already associated with an access point, generated ***one point each***:
+     - for lakes intersecting roads - the closest point on road intersections to the lake centroid
+     - for lakes not intersecting roads - the closest point on the lake to a road
 
-   - facil_code = *agen*
-   - included points within 50m of an aquatic feature - point snapped to aquatic feature boundary
-4. Trailheads
+3. Stocked trout reaches
 
-   - facil_code = *agen*
-   - included points within 50m of an aquatic feature - point snapped to aquatic feature boundary
-5. wma_points
-    - For `type = 'Boat Ramp`: facil_code = *awct*
-    - For `type = 'Fishing Pier`: facil_code = *afsh*
-    - included points within 50m of an aquatic feature - point snapped to aquatic feature boundary
-6. pub_fish_lake_dump
+   - were grouped using a quarter-mile grouping distance
 
-   - facil_code = *afsh*
+   - for streams not already associated with an access point, generated ***one point each***:
+     - for streams intersecting roads - the closest point on road intersections to the stream centroid
+     - for streams not intersecting roads - the closest point on the stream to a road
 
-   - for lakes that did not already have an access point within 50m, generate ***one point only***:
-     - for polygons intersecting roads - the closest point on road intersections to the polygon centroid
-     - for polygons not intersecting roads - the closest point on the polygon boundary to a road
-7. stocked_trout_reaches_diss
+4.  Public beaches
 
-    - facil_type = *afsh*
+   - points were generated every half-mile along public beach lines
 
-    - for stocked trout reaches that did not already have an access point within 50m:
-      - Included points at all intersections with roads
-      - For stocked\_trout\_reaches_diss not intersecting roads, generated one point on the line that was closest to a road
-8. public_beaches_polys
-
-    - facil_type = *aswm*
-    - For each road segment within 50m of a beach boundary, generated one point on the boundary
-    - For polygons not within 50m of roads, included one point on the beach polygon closest to a road
+The field `join_score` is assigned to a value of 1 for all aquatic access points.
 
 
 
 ### Post-processing
 
-This section describes steps used to prepare the access points for service area analysis.
+This section describes any steps used to prepare the access points for service area analysis. 
 
-#### Associating terrestrial facility points with areas/lengths for scoring
+- Each table had their `source_cid` and `road_dist` columns populated. Points that were exact duplicates of another point with the same `facil_code` were assigned `use = 0`.
 
-Terrestrial access points already were joined with either a public land polygon or a trail cluster. 
+#### Table-specific processes
 
-- field `join_fid` is used as the unique access feature
-- field `join_score` is the area of the associated polygon in hectares for points associated with public land polygons, or the length of associated trail cluster for points associated with trails.
+- **access_t** only:
+  - nothing
+- **access_a** only:
+  - assigned `use = 0` for points if they were not within a quarter mile of an NHD aquatic feature (area, waterbody, or river/stream)
+  - a new column **`group_id`** was added to the table. Point were divided into unique groups (by `facil_code`) using a quarter-mile separation distance. This column was used as the group for a unique service area.
 
-#### Associating aquatic facility points with areas for scoring
+#### Export to ArcGIS geodatabase
 
-Since aquatic access points could not be associated with a defined area or length of public access intuitively like the terrestrial points could with public lands or trails, we generated **aquatic areas** to associate with the points, based on the aquatic access points and the nearby waters. The workflow (in [CreateAquaAccessPolys.py](../CreateAquaAccessPolys.py)) is as follows:
-
-1. We generated an aquatic surface area raster (30m resolution) using all aquatic features from *nhd_area_wtrb* and *nhd_flowline*, plus public fishing lakes and public beach polygons. Water cells were coded 1, and non-water cells were set to NoData (null). This raster layer is called **aqua_rast**.
-2. All access points in 'access_a' with  a use code of 1 or 2 were used as sources in a Cost Distance analysis (using ArcGIS Spatial Analyst), with the raster “aqua_rast” serving as the cost surface, simulating travel across the water surface from all sources. The cost distance analysis was run separately for each facil_code, and maximum travel distance was limited as follows:
-   - for `facil_code = 'awct'`: used a distance of 5000m
-   - for every other facil_code, used a distance of 1000m
-3. Access areas created (**separately for each facil_code**)
-
-   - cost distance results were region-grouped and converted to polygons
-   - the polygons were called **aqua_accesspolys**
-
-   - The area in hectares was calculated for each distinct aqua_accesspoly
-4. Aquatic access points were then joined with their associated access poly, for use in the service area analysis. New fields were added to the **access_a** table:
-
-   - field `gridcode` stores the ID of the unique aqua_accesspoly
-   - field `area_ha` is the associated area of the aqua_accesspoly in hectares
+Points were to feature classes (one for each `facil_code`) for service area analysis in ArcGIS, where `use <> 0`. Files are timestamped with the date of export.
 
  
 
----
+------
 
-*Last updated: 2018-09-05*
+*Last updated: 2019-02-2*6
