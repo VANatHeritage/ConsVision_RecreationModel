@@ -149,7 +149,7 @@ def QuantRecOpps(inDir, inPop, outRecPP, tmpDir, zeroRast = ''):
    
    return outRecPP
    
-def AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, inMask = None):
+def AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, removeNulls = 1, inMask = None, inBenchMax = 5):
    '''Compares estimated recreation access to a benchmark to determine where recreation resources meet or exceed desired levels, and where attention is needed to offer additional resources.
    
    inBenchVal = input value representing the desired area (or length) of recreational facilities, per person. 
@@ -167,23 +167,28 @@ def AssessRecOpps(inBenchVal, inPop, inRecPP, inPubAccess, outDir, outBasename, 
    
    outBasename = basename (string) for output products
    
+   recType = recreational analysis type. Options: REGIONAL, LOCAL
+   
    inMask = (optional) mask used to determine processing area
+   
+   inBenchMax = multiplier by which inBenchVal is multiplied to obtain a standard for "excellent"
    '''
    
    if inMask:
       arcpy.env.mask = inMask
    
-   RecPP = outDir + os.sep + outBasename + "_RecPP.tif"
-   if arcpy.Exists(RecPP):
-      printMsg('Per-person recreation raster with nulls eliminated already exists. Proceeding to next step...')
-   else:
+   if removeNulls = 1:
       printMsg('Updating per-person recreation raster to eliminate nulls...')
+      RecPP = outDir + os.sep + outBasename + "_RecPP.tif"
       tmpRast0 = Con(IsNull(inRecPP), 0, inRecPP)
       tmpRast0.save(RecPP)
+   else:
+      printMsg('Assuming input per-person recreation raster has no nulls to remove. Proceeding...')
+      RecPP = inRecPP
    
    printMsg('Calculating the Recreation Access Score...')
    # Note: With this formula, a pixel just meeting the minimum standard will get a score of 20. Anything meeting or exceeding five times the standard will get the maximum score of 100.
-   tmpRast1 = 100*Raster(RecPP)/(5*float(inBenchVal))
+   tmpRast1 = 100*Raster(RecPP)/(inBenchMax*float(inBenchVal))
    tmpRast2 = Con(IsNull(inPubAccess),(Con(tmpRast1 > 100, 100, tmpRast1)), 101)
    RecScore = outDir + os.sep + outBasename + "_RecScore.tif"
    tmpRast2.save(RecScore)
@@ -246,6 +251,83 @@ def TravelAccess(inTargets, inCostSurf, inSnapRaster, inMask, outTravTime, outSc
    printMsg('Finished.')
    return (outTravTime, outScore)     
 
+def LocalParksPP(inParks, multFactor, inRadVal, inRadUnits, inPop, popType = "SUM", outParkSum, outParksPP, inMask = None, outPopSum = None): 
+   '''Calculates focal statistics to determine sum of parks area within a defined neighborhood radius, and then calculates the area per person.
+   Parameters:
+   - inParks = Input raster in which parks are indicated with the value 1
+   - multFactor = Factor by which cell values should be multiplied to get the desired output units
+     Example: If 30-m cells are coded 1 to indicate presence of a feature, and you want the area of features in acres, the factor is 0.222395 (1 cell = 900 sq. m = 0.222395 acres)
+   - inRadVal = Number representing the radius to be used to define the neighborhood
+   - inRadUnits = Units associated with the numeric value defining the radius of the neighborhood
+   - inPop = Input raster representing either persons per pixel, or the sum of the population within neighborhood assumed to be same as previously specified
+   - popType = String indicating whether inPop represents population per pixel, or population sum within neighborhood. Options: "PIX" = per pixel, "SUM" = sum within neighborhood (default)
+   - outParkSum = Output raster representing sum of park area within specified neighborhood
+   - outParksPP = Output raster representing park area per person within specified neighborhood
+   - inMask = Input feature class or raster defining the processing area
+   - outPopSum = Output raster representing population sum within defined neighborhood, if needed
+   '''
+   
+   if inMask:
+      arcpy.env.mask = inMask
+   scratchGDB = arcpy.env.scratchGDB
+   
+   neighborhood = NbrCircle(inRadVal, inRadUnits)
+   
+   printMsg('Generating neighborhood area sum...')
+   focalSum = multFactor*FocalStatistics(inParks, neighborhood, "SUM", "DATA")
+   focalSum.save(outParkSum)
+   
+   if popType = "PIX":
+      printMsg('Generating neighborhood population sum raster...')
+      PopSum = FocalStatistics(inPop, neighborhood, "SUM", "DATA")
+      if outPopSum = None:
+         outPopSum = scratchGDB + os.sep + 'PopSum'
+         printMsg('PopSum raster saved in %s' %scratchGDB)
+      PopSum.save(outPopSum)
+   elif popType = "SUM":
+      printMsg('Proceeding under assumption that input population raster represents neighborhood population sum...')
+      PopSum = inPop
+   else:
+      printErr('Invalid parameter value for popType; aborting...')
+   
+   printMsg('Calculating neighborhood recreation area per person...')   
+   focalAreaPP = Raster(focalSum)/Raster(PopSum)
+   focalAreaPP.save(outParksPP)
+   
+   printMsg('Finished.')
+   
+   return (focalSum, focalAreaPP)   
+   
+def LocalTrailsPP(inLines, multFactor, inRadius, inPopSum, inSnapRaster, inMask, outRaster):  
+   '''Calculates the summed length of trails within a defined neighborhood radius, and then calculates the length per person.
+   Parameters:
+   - inLines = Input line features
+   - multFactor = Factor by which line length values should be multiplied to get the desired output units
+     Example: If map units are in meters, and you want the length of lines in miles, the factor is 0.000621371
+   - inRadius = Radius defining the neighborhood, in map units
+   - inSnapRaster = Input raster used to define coordinate system, cell size, and pixel alignment
+   - inMask = Input raster or feature class used to define processing extent and analysis area
+   - outRaster = Output raster representing summed line length within defined neighborhood
+   '''
+   
+   # Set up processing environment
+   arcpy.env.extent = inMask
+   arcpy.env.mask = inMask
+   arcpy.env.cellSize = inSnapRaster
+   arcpy.env.snapRaster = inSnapRaster
+   cellSize = arcpy.env.cellSize
+   
+   lineSum = multFactor * LineStatistics (inLines, "", cellSize, inRadius, "LENGTH")
+   lineSum.save(outRaster)
+   
+   printMsg('Calculating neighborhood trail length per person...')   
+   focalLengthPP = Raster(lineSum)/Raster(inPopSum)
+   focalLengthPP.save(outRaster)
+   
+   printMsg('Finished.')
+   
+   return lineSum
+     
 def GenRecNeed(inMask, inRecNeed, outDir, outBasename):
    '''Generalizes the Recreation Need Raster
    inMask = 
@@ -288,10 +370,19 @@ def main():
    #outTravTime = r'F:\Working\RecMod\Outputs\Products.gdb\WalkTime_Trails2'
    outScore = r'F:\Working\RecMod\Outputs\Products.gdb\WalkScore_Parks2'
    #outScore = r'F:\Working\RecMod\Outputs\Products.gdb\WalkScore_Trails2'
-   inBenchVal_parks = 0.010 # acres/person
+   BenchVal_regParks = 0.010 # 10 acres per 1000 people = 0.010 acres/person
+   BenchVal_locParks = 0.003 # 3 acres per 1000 people = 0.003 acres/person
    inPop = r'F:\Working\RecMod\FinalDataToUse\RoadsPopProducts.gdb\distribPop_kdens'
-   inRecPP_parks = r'F:\Working\RecMod\FinalDataToUse\raw_summary_scores.gdb\popAdj_sum_t_tlnd_serviceAreas'
+   #inRecPP_parks = r'F:\Working\RecMod\FinalDataToUse\raw_summary_scores.gdb\popAdj_sum_t_tlnd_serviceAreas'
+   regParksPP = 
    outDir = r'F:\Working\RecMod\Outputs'
+   inRadVal = 1.5
+   inRadUnits = "MILES"
+   inRadius = 2414.02 # 1.5 miles = 2414.02 meters
+   pix2acre = 0.222395 # multiplier to convert pixel area to acres
+   locParkSum = r'F:\Working\RecMod\Outputs\Products.gdb\locParkSum'
+   locParksPP = r'F:\Working\RecMod\Outputs\Products.gdb\locParksPP'
+   locPopSum = r'F:\Working\RecMod\Outputs\Products.gdb\locPopSum'
 
    
    
@@ -303,7 +394,10 @@ def main():
    #FeatToRaster(inTargets_parks, inSnapRaster, inMask, parksRaster)
    
    # RecOpps for parks:
-   AssessRecOpps(inBenchVal_parks, inPop, inRecPP_parks, parksRaster, outDir, "parks", inMask)
+   # AssessRecOpps(BenchVal_regParks, inPop, inRecPP_parks, parksRaster, outDir, "regParks", inMask)
+   AssessRecOpps(BenchVal_regParks, inPop, regParksPP, parksRaster, outDir, "regParks10", 0, inMask, 10)
+   LocalParksPP(parksRaster, pix2acre, inRadVal, inRadUnits, inPop, popType = "PIX", locParkSum, locParksPP, inMask, locPopSum)
+   AssessRecOpps(BenchVal_locParks, inPop, locParksPP, parksRaster, outDir, "locParks05", 0, inMask, 5)
 
 if __name__ == '__main__':
    main()
