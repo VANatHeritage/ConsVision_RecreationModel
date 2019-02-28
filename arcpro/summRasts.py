@@ -8,18 +8,24 @@ ArcGIS version: ArcGIS Pro
 Python version: Python 3.5.3
 Author: David Bucklin
 
-Generic function to summarize large groups
-of rasters(using cell statistics).
-stored across (multiple) geodatabases in 'inFolder'.
-Can specify optional patterns for geodatabase
+Generic function to summarize large groups (i.e. 100s) of rasters(using cell statistics),
+stored across (one or multiple) geodatabases in 'inFolder'. Can specify optional patterns for geodatabase
 name, and raster name within those geodatabases.
 
-Rasters are processed by geodatabase, and then in
-sub-groups within a geodatabase as specified by
-'maxRasts'.  Because of this, this function
-should not be used for certain statistics
-where all rasters need to be considered together at once (e.g., MEAN, MEDIAN, etc).
-Will work for SUM, MIN, MAX.
+Rasters are processed by geodatabase, and then in sub-groups within a geodatabase as specified by
+'maxRasts'.  Because of this, this function should not be used for certain statistics
+where all rasters need to be considered together at once (e.g. MEAN).
+
+Argument definitions:
+   inFolder: The folder containing the geodatabase(s)
+   outRast: The output summary raster
+   rastExt: Template raster with the extent for the final summary raster
+   wdPattern: Character string defining a subset of geodatabases in
+      inFolder to process
+   rastPatter: Character string defining a subset of rasters in the
+      geodatabases to process
+   stat: summary statistic, one of ["SUM"|"MINIMUM"|"MAXIMUM"]
+   maxRasts: number of rasters in sub-groups, processing limit.
 
 """
 
@@ -27,7 +33,7 @@ import Helper
 from Helper import *
 from arcpy import env
 
-def summRasts(inFolder, outRast, rastExt, wdPattern="*", rastPattern="*", stat="SUM", maxRasts=100):
+def summRasts(inFolder, outRast, rastExt, wdPattern="*", rastPattern="*", stat="SUM", maxRasts=200):
    arcpy.env.snapRaster = rastExt
    arcpy.env.cellSize = rastExt
    arcpy.env.extent = rastExt
@@ -58,6 +64,7 @@ def summRasts(inFolder, outRast, rastExt, wdPattern="*", rastPattern="*", stat="
          n = [0, maxRasts]
          while n[0] < len(rls1):
             rls = rls1[n[0]:n[1]]
+            print(rls)
             print("Summarizing " + str(len(rls)) + " sub-group rasters in workspace " + g + "...")
             area = Float(CellStatistics(rls, stat, "DATA"))
             subnm = "sub_sum" + str(int(n[0]))
@@ -93,14 +100,16 @@ def main():
    # for typ in typs:
    typ = 't_ttrl'
       stat = "SUM"
-      inFolder = r'E:\arcpro_wd'
-      rtype = 'popAdj' # pattern for rasters to summarize [grp | popAdj | acresPer10k]
-      rastPattern = rtype + '*'
-      outRast = 'E:/arcpro_wd/score_rasts/raw_scores.gdb/' + rtype + '_' + stat.lower() + '_' + typ + '_serviceAreas'
-      # full raster extent
-      rastExt = r'E:\arcpro_wd\rec_model_temp\costSurf_no_lah.tif'
-      wdPattern = '*access_' + typ + '_serviceAreas*'
-      summRasts(inFolder, outRast, rastExt, wdPattern, rastPattern, stat=stat, maxRasts = 200)
+      inFolder = r'E:\arcpro_wd\rec_model_temp\serviceAreas_modelupdate_Feb2019'
+      # arcpy.CreateFileGDB_management(inFolder, 'raw_summary_scores.gdb')
+      rtypes = ['popAdj','servArea'] # pattern for rasters to summarize
+      for rtype in rtypes:
+         rastPattern = '*' + rtype + '*'
+         outRast = 'E:/arcpro_wd/rec_model_temp/serviceAreas_modelupdate_Feb2019/raw_summary_scores.gdb/' + rtype + '_' + stat.lower() + '_' + typ + '_serviceAreas'
+         # full raster extent
+         rastExt = r'E:\RCL_cost_surfaces\Tiger_2018\cost_surfaces.gdb\costSurf_no_lah'
+         wdPattern = '*access_' + typ + '*'
+         summRasts(inFolder, outRast, rastExt, wdPattern, rastPattern, stat=stat, maxRasts = 100)
 
 if __name__ == '__main__':
    main()
