@@ -32,9 +32,9 @@ From DCR (PRR and DNH), datasets for Virginia Outdoors Plan (VOP) Mapper:
 - VATrails_2017 (Line)
 - VATrailheads_2017 (Point)
 - Local_Park_Inventory_2018
-  - This point dataset has attributes on facilities at parks. It appears to be centroids, not spatially precise on location of the facilities, but it has a lot of useful attributes
+  - This point dataset has attributes on facilities at local (municipalities) parks. Not always spatially precise on location of the facilities, but it has a lot of useful attributes
 - Watertrails2017 
-  - sent by Robbie Rhur (DCR PRR) 2/2019, updated for that date
+  - sent by Robbie Rhur (DCR PRR) 2/2019, and was updated for that date
 
 From Virginia Dept. of Game and Inland Fisheries (VDGIF):
 
@@ -144,9 +144,9 @@ Polygon and line feature were considered **Recreational Features**. Several recr
 
 - *pub\_lands\_dissolve*
   -  In ArcMap:
-    - used the query `ACCESS <> 'BY PERMISSION'` 
-    - dissolved into single-part polygons (no multi-part polygons)
-    - ArcMap Identity tool used to identify aquatic areas (using *nhd_area_wtrb*) within public lands, and attributed in a new `water` binary field (0 / 1). Dissolved again by original single-part ID and water, allowing mutli-part polygons where waters within the a public access land boundary separate them.
+    -  used the query `ACCESS <> 'BY PERMISSION'` 
+    -  dissolved into single-part polygons (no multi-part polygons)
+    -  ArcMap Identity tool used to identify aquatic areas (using *nhd_area_wtrb*) within public lands, and attributed in a new `water` binary field (0 / 1). Dissolved again by original single-part ID and water, allowing mutli-part polygons only when waters within the a public access land boundary separate them
   -  `pub_lands_dissolve` merged with `local_parks_areas` (buffered local park points) in new table `pub_lands_final`
      -  excluded water areas using `water = 0`.
   -  `pub_lands_final` used as the final layer for the public lands components
@@ -177,7 +177,6 @@ Polygon and line feature were considered **Recreational Features**. Several recr
       - Trails suspected to not exist marked 'NotExist?' and confirmed 'Proposed'
       - Non-exact duplicates marked 'Duplicate', when found
       - TrailStatus = 'Closed' marked as 'Closed'
-    - ~~Uses left-buffering process to remove near-duplicate trails (see [arcpro/trails_dupremove.py](.))~~
     - Used Integrate tool with a tolerance of 1-meter to clean up trails.
       - This doesn't remove duplicates, but puts them directly on top of one another. Allows to retain attributes of individual lines.
   - In Postgres:
@@ -221,8 +220,6 @@ All access points were input into tables ***access_t/access_a*** (for terrestria
 
 * [acs_t_id]/[acs_a_id]: unique table ID
 * facil\_code: type of recreation associated with access point, includes following types:
-  * *tlnd*: access points to public lands
-  * *ttrl*: access points to trails
 * facil_rid: unique ID  in a temporary combined table for access points for a particular `facil_code`
 * src\_table: table of source feature from which the facility point was generated
 * src\_id: ID/primary key of source feature in `src_table` (generally `objectid`)
@@ -230,7 +227,7 @@ All access points were input into tables ***access_t/access_a*** (for terrestria
 * join_table: the joined public land or trails table with which the point is associated
 * join_fid: the ID of the feature from the joined table with which the point is associated
 * join_score: the 'score' of the feature from the joined table with which the point is associated
-  * This was area in acres (dissolved public lands) or length in miles (trail clusters)
+  * This was area in acres (public lands) or length in miles (trail clusters), or 1 (aquatic facility types)
 * use: integer regarding further use in model
   * **0**: don't use
   * **1**: use
@@ -266,7 +263,7 @@ The field `join_score` is the **area in acres** (public lands) or **length in mi
 
 2. Public fishing lakes
 
-   - lake polygons were grouped using a quarter-mile grouping distance
+   - were grouped using a quarter-mile grouping distance
 
    - for lakes not already associated with an access point, generated ***one point each***:
      - for lakes intersecting roads - the closest point on road intersections to the lake centroid
