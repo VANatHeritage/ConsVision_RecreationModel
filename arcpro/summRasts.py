@@ -29,8 +29,8 @@ Argument definitions:
 
 """
 
-import Helper
-from Helper import *
+import arcpro.Helper
+from arcpro.Helper import *
 from arcpy import env
 
 def summRasts(inFolder, outRast, rastExt, wdPattern="*", rastPattern="*", stat="SUM", maxRasts=200):
@@ -98,7 +98,7 @@ def main():
    ## these can be in multiple gdbs, use wdPattern to select them
    # typs = ['t_ttrl','t_tlnd','a_agen','a_awct','a_aswm']
    # for typ in typs:
-   typ = 't_ttrl'
+      typ = 't_ttrl'
       stat = "SUM"
       inFolder = r'E:\arcpro_wd\rec_model_temp\serviceAreas_modelupdate_Feb2019'
       # arcpy.CreateFileGDB_management(inFolder, 'raw_summary_scores.gdb')

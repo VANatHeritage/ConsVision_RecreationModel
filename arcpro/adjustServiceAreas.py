@@ -116,20 +116,22 @@ def adjustServiceAreas(inGDB, popRast, rastPattern = '*_servArea'):
    return
 
 def main():
-   # population adjustment rasters (e.g. area / population)
+
+   # create population adjustment rasters (e.g. area / population)
    arcpy.env.overwriteOutput = True
    popRast = r'E:\arcpro_wd\rec_model_temp\input_recmodel.gdb\distribPop_kdens'
    arcpy.env.workspace = r'E:\arcpro_wd\rec_model_temp\serviceAreas_modelupdate_Feb2019'
+
    # loop over GDBs. Put all results in same GDB
    gdbl = arcpy.ListWorkspaces("access_t_ttrl*", "FileGDB")
-
    m = gdbl[0]
    print(m)
    inGDB = m
+
    # copy template polys to gdb (not using this currently)
    # arcpy.CopyFeatures_management(r'E:\arcpro_wd\rec_model_temp\input_recmodel.gdb\template_SApolys', inGDB + os.sep + 'all_SA_polys')
-   adjustServiceAreas(inGDB, popRast)
 
+   adjustServiceAreas(inGDB, popRast)
 
 if __name__ == '__main__':
    main()

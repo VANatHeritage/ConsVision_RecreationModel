@@ -218,11 +218,10 @@ def main():
    facil_date = 't_ttrl_20190225' # suffix of filename
    outGDB = r'E:\arcpro_wd\rec_model_temp\serviceAreas_modelupdate_Feb2019\access_' + facil_date + '.gdb'
    accPts = r'E:\arcpro_wd\rec_model_temp\access_pts.gdb\access_' + facil_date
-   grpFld = 'join_fid'  # [group_id for aquatic; join_fid for terrestrial]; name of attribute field of group for access points (e.g., all points are related to one feature)
-   maxCost = 60  # in minutes; ignored if attFld is set to a field name
+   grpFld = 'join_fid'  # [group_id for aquatic; join_fid for terrestrial]; name of attribute field of group for access points
+   maxCost = 60  # maximum cost distance in minutes; if attFld is set to a field name, variable costs will be calculated, but maxCost still applies
    attFld = 'join_score' # (optional) name of attribute field containing value to assign to raster for the group. or an integer value to apply
    makeServiceAreas(outGDB, accPts, costRastLoc, costRastHwy, rampPts, rampPtsID, grpFld, maxCost, attFld)
-
 
    # time to closest facility (all points considered at once). Returns actual cost distance in minutes.
    accPts = r'E:\arcpro_wd\rec_model_temp\access_pts.gdb\access_all_forregional'
