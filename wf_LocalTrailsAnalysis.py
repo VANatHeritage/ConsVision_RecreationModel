@@ -1,7 +1,7 @@
 # wf_LocalTrailsAnalysis.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2019-03-06
-# Last Edit: 2019-03-08
+# Last Edit: 2019-03-14
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -31,19 +31,40 @@ def main():
    locPopSum = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\locPopSum' 
    recAcc = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lTrl_Sum'
    recPP = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lTrl_PP'
-   travTime = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\WalkTime_Trails'
+   travTime = r'F:\Working\RecMod\FinalDataToUse\local_access_walkNearest.gdb\walkNearest_access_trails_include_20190221'
    ttBin = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lTrl_tt10'
+   
+   codeblock = '''def Status(bNeed, PP):
+   if bNeed == None:
+      return None
+   elif bNeed == 0: 
+      return 0
+   else: 
+      if PP > 1:
+         return 1
+      elif bNeed <= 1:
+         return 2
+      elif bNeed <= 2:
+         return 3
+      elif bNeed <= 3:
+         return 4
+      else:
+         return 5'''
+         
+   expression = 'Status(!lTrl_bNeed!, !lTrl_p75C!)'
    
    # Functions to run
    # LocalTrailsPP(inTrails, multFactor, inRadius, locPopSum, inPop, inMask, recAcc, recPP)
    # AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP, inMask, outGDB, "lTrl", 5, remNulls_n, multiplier)
-   zonalMean(inHex, hexFld, "lTrl_Acc", recAcc, remNulls_y, 0)
+   zonalMean(inHex, hexFld, "lTrl_Acc", recAcc)
    zonalMean(inHex, hexFld, "lTrl_p75C", recPP, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
-   # travelBinary(travTime, 10, inPop, ttBin)
+   travelBinary(travTime, 10, inPop, ttBin)
    zonalMean(inHex, hexFld, "lTrl_tt10", ttBin, remNulls_n, 0, inPop)
    zonalMean(inHex, hexFld, "lTrl_ttAvg", travTime, remNulls_n, 0, inPop)
-   updateNulls(inHex, "lTrl_ttAvg", 31, "PopSum")
+
+   arcpy.AddField_management (inHex, "lTrl_bStat", "SHORT")
+   arcpy.CalculateField_management (inHex, "lTrl_bStat", expression, "PYTHON", codeblock)
    
 if __name__ == '__main__':
    main()

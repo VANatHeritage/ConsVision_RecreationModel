@@ -1,7 +1,7 @@
 # wf_FishingAnalysis.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2019-03-06
-# Last Edit: 2019-03-08
+# Last Edit: 2019-03-14
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -28,26 +28,46 @@ def main():
    recPP = r'F:\Working\RecMod\FinalDataToUse\raw_summary_scores.gdb\popAdj_sum_a_afsh_serviceAreas'
    recPP_upd = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\rFsh_RecPP'
    recAcc = r'F:\Working\RecMod\FinalDataToUse\raw_summary_scores.gdb\servArea_sum_a_afsh_serviceAreas'
-   driveTime = r'F:\Working\RecMod\FinalDataToUse\regional_access_all_60min_ServiceAreas.gdb\grp_afsh_servArea'
+   recAcc_upd = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\rFsh_RecSum'
+   driveTime = r'F:\Working\RecMod\FinalDataToUse\regional_access_all_driveNearest.gdb\grp_afsh_servArea'
    ttBin_drive = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\rFsh_tt30'
-   walkTime = r'F:\Working\RecMod\FinalDataToUse\local_access_walk30min.gdb\walk30min_access_a_afsh_20190221'
+   walkTime = r'F:\Working\RecMod\FinalDataToUse\local_access_walkNearest.gdb\walkNearest_access_a_afsh_20190221'
    ttBin_walk = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lFsh_tt10'
+   
+   codeblock = '''def Status(bNeed, PP):
+      if bNeed == None:
+         return None
+      elif bNeed == 0: 
+         return 0
+      else: 
+         if PP > 1:
+            return 1
+         elif bNeed <= 1:
+            return 2
+         elif bNeed <= 2:
+            return 3
+         else:
+            return 4'''
+         
+   expression = 'Status(!rFsh_bNeed!, !rFsh_p10K!)'
    
    # Functions to run
    # AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP_upd, inMask, outGDB, "rFsh", 5, remNulls_n, multiplier)
-   zonalMean(inHex, hexFld, "rFsh_Acc", recAcc, remNulls_y, 0)
+   recSum = Con(IsNull(recAcc), 0, recAcc)
+   recSum.save(recAcc_upd)
+   zonalMean(inHex, hexFld, "rFsh_Acc", recAcc_upd)
    zonalMean(inHex, hexFld, "rFsh_p10K", recPP_upd, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
-   # travelBinary(driveTime, 30, inPop, ttBin_drive)
+   travelBinary(driveTime, 30, inPop, ttBin_drive)
    zonalMean(inHex, hexFld, "rFsh_tt30", ttBin_drive, remNulls_n, 0, inPop)
    zonalMean(inHex, hexFld, "rFsh_ttAvg", driveTime, remNulls_n, 0, inPop)
-   updateNulls(inHex, "rFsh_ttAvg", 61, "PopSum")
    
-   # travelBinary(walkTime, 10, inPop, ttBin_walk)
+   travelBinary(walkTime, 10, inPop, ttBin_walk)
    zonalMean(inHex, hexFld, "lFsh_tt10", ttBin_walk, remNulls_n, 0, inPop)
    zonalMean(inHex, hexFld, "lFsh_ttAvg", walkTime, remNulls_n, 0, inPop)
-   updateNulls(inHex, "lFsh_ttAvg", 31, "PopSum")
    
+   arcpy.AddField_management (inHex, "rFsh_bStat", "SHORT")
+   arcpy.CalculateField_management (inHex, "rFsh_bStat", expression, "PYTHON", codeblock)
    
 if __name__ == '__main__':
    main()

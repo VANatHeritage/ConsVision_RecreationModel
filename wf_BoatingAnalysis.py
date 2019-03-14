@@ -1,7 +1,7 @@
 # wf_BoatingAnalysis.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2019-03-06
-# Last Edit: 2019-03-08
+# Last Edit: 2019-03-14
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -28,18 +28,40 @@ def main():
    recPP = r'F:\Working\RecMod\FinalDataToUse\raw_summary_scores.gdb\popAdj_sum_a_awct_serviceAreas'
    recPP_upd = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\rBtl_RecPP'
    recAcc = r'F:\Working\RecMod\FinalDataToUse\raw_summary_scores.gdb\servArea_sum_a_awct_serviceAreas'
-   driveTime = r'F:\Working\RecMod\FinalDataToUse\regional_access_all_60min_ServiceAreas.gdb\grp_awct_servArea'
+   recAcc_upd = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\rBtl_RecSum'
+   driveTime = r'F:\Working\RecMod\FinalDataToUse\regional_access_all_driveNearest.gdb\grp_awct_servArea'
    ttBin_drive = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\rBtl_tt30'
    
+   codeblock = '''def Status(bNeed, PP):
+      if bNeed == None:
+         return None
+      elif bNeed == 0: 
+         return 0
+      else: 
+         if PP > 1:
+            return 1
+         elif bNeed <= 1:
+            return 2
+         elif bNeed <= 2:
+            return 3
+         else:
+            return 4'''
+         
+   expression = 'Status(!rBtl_bNeed!, !rBtl_p10K!)'
+   
    # Functions to run
-   AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP_upd, inMask, outGDB, "rBtl", 5, remNulls_n, multiplier)
-   zonalMean(inHex, hexFld, "rBtl_Acc", recAcc, remNulls_y, 0)
+   # AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP_upd, inMask, outGDB, "rBtl", 5, remNulls_n, multiplier)
+   recSum = Con(IsNull(recAcc), 0, recAcc)
+   recSum.save(recAcc_upd)
+   zonalMean(inHex, hexFld, "rBtl_Acc", recAcc_upd)
    zonalMean(inHex, hexFld, "rBtl_p10K", recPP_upd, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
    travelBinary(driveTime, 30, inPop, ttBin_drive)
    zonalMean(inHex, hexFld, "rBtl_tt30", ttBin_drive, remNulls_n, 0, inPop)
    zonalMean(inHex, hexFld, "rBtl_ttAvg", driveTime, remNulls_n, 0, inPop)
-   updateNulls(inHex, "rBtl_ttAvg", 61, "PopSum")
+
+   arcpy.AddField_management (inHex, "rBtl_bStat", "SHORT")
+   arcpy.CalculateField_management (inHex, "rBtl_bStat", expression, "PYTHON", codeblock)
    
 if __name__ == '__main__':
    main()

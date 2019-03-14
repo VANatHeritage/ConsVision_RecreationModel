@@ -1,7 +1,7 @@
 # wf_LocalParksAnalysis.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2019-03-06
-# Last Edit: 2019-03-08
+# Last Edit: 2019-03-14
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -32,20 +32,41 @@ def main():
    locPopSum = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\locPopSum' 
    recAcc = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lPrk_Sum'
    recPP = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lPrk_PP'
-   travTime = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\WalkTime_Parks'
+   travTime = r'F:\Working\RecMod\FinalDataToUse\local_access_walkNearest.gdb\walkNearest_access_pub_lands_final_20190221'
    ttBin = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lPrk_tt10'
    
+   codeblock = '''def Status(bNeed, PP):
+   if bNeed == None:
+      return None
+   elif bNeed == 0: 
+      return 0
+   else: 
+      if PP > 3:
+         return 1
+      elif bNeed <= 5:
+         return 2
+      elif bNeed <= 10:
+         return 3
+      elif bNeed <=15:
+         return 4
+      else:
+         return 5'''
+   
+   expression = 'Status(!lPrk_bNeed!, !lPrk_p1K!)'
+   
    # Functions to run
-   FeatToRaster(inParks, inPop, inMask, parksRaster)
-   LocalParksPP(parksRaster, multFactor, inRadius, locPopSum, recAcc, recPP, inMask, "SUM")
-   AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP, inMask, outGDB, "lPrk", 5, remNulls_n, multiplier)
+   # FeatToRaster(inParks, inPop, inMask, parksRaster)
+   # LocalParksPP(parksRaster, multFactor, inRadius, locPopSum, recAcc, recPP, inMask, "SUM")
+   # AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP, inMask, outGDB, "lPrk", 5, remNulls_n, multiplier)
    zonalMean(inHex, hexFld, "lPrk_Acc", recAcc, remNulls_y, 0)
    zonalMean(inHex, hexFld, "lPrk_p1K", recPP, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
    travelBinary(travTime, 10, inPop, ttBin)
    zonalMean(inHex, hexFld, "lPrk_tt10", ttBin, remNulls_n, 0, inPop)
    zonalMean(inHex, hexFld, "lPrk_ttAvg", travTime, remNulls_n, 0, inPop)
-   updateNulls(inHex, "lPrk_ttAvg", 31, "PopSum")
+   
+   arcpy.AddField_management (inHex, "lPrk_bStat", "SHORT")
+   arcpy.CalculateField_management (inHex, "lPrk_bStat", expression, "PYTHON", codeblock)
    
 if __name__ == '__main__':
    main()
