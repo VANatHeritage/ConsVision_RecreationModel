@@ -56,7 +56,7 @@ def main():
    recSum = Con(IsNull(recAcc), 0, recAcc)
    recSum.save(recAcc_upd)
    zonalMean(inHex, hexFld, "rPrk_Acc", recAcc_upd)
-   zonalMean(inHex, hexFld, "rPrk_p1K", recPP_upd, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
+   # zonalMean(inHex, hexFld, "rPrk_p1K", recPP_upd, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
    travelBinary(travTime, 30, inPop, ttBin)
    zonalMean(inHex, hexFld, "rPrk_tt30", ttBin, remNulls_n, 0, inPop)

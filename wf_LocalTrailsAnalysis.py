@@ -57,7 +57,7 @@ def main():
    # LocalTrailsPP(inTrails, multFactor, inRadius, locPopSum, inPop, inMask, recAcc, recPP)
    # AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP, inMask, outGDB, "lTrl", 5, remNulls_n, multiplier)
    zonalMean(inHex, hexFld, "lTrl_Acc", recAcc)
-   zonalMean(inHex, hexFld, "lTrl_p75C", recPP, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
+   # zonalMean(inHex, hexFld, "lTrl_p75C", recPP, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
    travelBinary(travTime, 10, inPop, ttBin)
    zonalMean(inHex, hexFld, "lTrl_tt10", ttBin, remNulls_n, 0, inPop)

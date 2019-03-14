@@ -59,7 +59,7 @@ def main():
    # LocalParksPP(parksRaster, multFactor, inRadius, locPopSum, recAcc, recPP, inMask, "SUM")
    # AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP, inMask, outGDB, "lPrk", 5, remNulls_n, multiplier)
    zonalMean(inHex, hexFld, "lPrk_Acc", recAcc, remNulls_y, 0)
-   zonalMean(inHex, hexFld, "lPrk_p1K", recPP, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
+   # zonalMean(inHex, hexFld, "lPrk_p1K", recPP, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
    travelBinary(travTime, 10, inPop, ttBin)
    zonalMean(inHex, hexFld, "lPrk_tt10", ttBin, remNulls_n, 0, inPop)
