@@ -13,7 +13,7 @@ from AssessRecOpps import *
 
 def main():
    # Parameters
-   inHex = r'F:\Working\RecMod\Outputs\VA_RecMod.gdb\RecreationAccess'
+   inHex = r'F:\Working\RecMod\Outputs\VA_RecMod_CONUS\VA_RecMod.gdb\RecreationAccess'
    hexFld = 'Unique_ID'
    inPop = r'F:\Working\RecMod\FinalDataToUse\RoadsPopProducts.gdb\distribPop_kdens'
    inMask = r'F:\Working\VA_Buff50mi\VA_Buff50mi.shp'
