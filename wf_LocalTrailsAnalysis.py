@@ -17,7 +17,7 @@ def main():
    hexFld = 'Unique_ID'
    inPop = r'F:\Working\RecMod\FinalDataToUse\RoadsPopProducts.gdb\distribPop_kdens'
    inMask = r'F:\Working\VA_Buff50mi\VA_Buff50mi.shp'
-   outGDB = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb'
+   outGDB = r'F:\Working\RecMod\Outputs\VA_RecMod_CONUS\VA_RecMod_Archive.gdb'
    remNulls_y = 1 # Replace nulls in value field with replacement value
    remNulls_n = 0 # Leave nulls in value field
  
@@ -28,11 +28,11 @@ def main():
    inRadius = 2414.02 # 1.5 miles = 2414.02 meters to define local neighborhood
 
    inTrails = r'F:\Working\RecMod\FinalDataToUse\rec_source_datasets.gdb\trails_include_20190221'
-   locPopSum = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\locPopSum' 
-   recAcc = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lTrl_Sum'
-   recPP = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lTrl_PP'
+   locPopSum = outGDB + os.sep + 'locPopSum' 
+   recAcc = outGDB + os.sep + 'lTrl_Sum'
+   recPP = outGDB + os.sep + 'lTrl_PP'
    travTime = r'F:\Working\RecMod\FinalDataToUse\local_access_walkNearest.gdb\walkNearest_access_trails_include_20190221'
-   ttBin = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lTrl_tt10'
+   ttBin = outGDB + os.sep + 'lTrl_tt10'
    
    codeblock = '''def Status(bNeed, PP):
    if bNeed == None:

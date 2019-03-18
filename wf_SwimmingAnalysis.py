@@ -17,7 +17,7 @@ def main():
    hexFld = 'Unique_ID'
    inPop = r'F:\Working\RecMod\FinalDataToUse\RoadsPopProducts.gdb\distribPop_kdens'
    inMask = r'F:\Working\VA_Buff50mi\VA_Buff50mi.shp'
-   outGDB = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb'
+   outGDB = r'F:\Working\RecMod\Outputs\VA_RecMod_CONUS\VA_RecMod_Archive.gdb'
    remNulls_y = 1 # Replace nulls in value field with replacement value
    remNulls_n = 0 # Leave nulls in value field
  
@@ -26,13 +26,13 @@ def main():
    BenchVal = 0.0001 # 1 swimming access point per 10,000 people
 
    recPP = r'F:\Working\RecMod\FinalDataToUse\raw_summary_scores.gdb\popAdj_sum_a_aswm_serviceAreas'
-   recPP_upd = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\rSwm_RecPP'
+   recPP_upd = outGDB + os.sep + 'rSwm_RecPP'
    recAcc = r'F:\Working\RecMod\FinalDataToUse\raw_summary_scores.gdb\servArea_sum_a_aswm_serviceAreas'
-   recAcc_upd = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\rSwm_RecSum'
+   recAcc_upd = outGDB + os.sep + 'rSwm_RecSum'
    driveTime = r'F:\Working\RecMod\FinalDataToUse\regional_access_all_driveNearest.gdb\grp_aswm_servArea'
-   ttBin_drive = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\rSwm_tt30'
+   ttBin_drive = outGDB + os.sep + 'rSwm_tt30'
    walkTime = r'F:\Working\RecMod\FinalDataToUse\local_access_walkNearest.gdb\walkNearest_access_a_aswm_20190219'
-   ttBin_walk = r'F:\Working\RecMod\Outputs\VA_RecMod_Archive.gdb\lSwm_tt10'
+   ttBin_walk = outGDB + os.sep + 'lSwm_tt10'
    
    codeblock = '''def Status(bNeed, PP):
       if bNeed == None:
