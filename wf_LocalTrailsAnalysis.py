@@ -1,7 +1,7 @@
 # wf_LocalTrailsAnalysis.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2019-03-06
-# Last Edit: 2019-03-14
+# Last Edit: 2019-03-18
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -53,18 +53,40 @@ def main():
          
    expression = 'Status(!lTrl_bNeed!, !lTrl_p75C!)'
    
+   codeblock2 = '''def Status(mNeed, PP):
+      if mNeed == None:
+         return None
+      elif mNeed == 0: 
+         return 0
+      else: 
+         if PP > 5:
+            return 1
+         elif mNeed <= 1:
+            return 2
+         elif mNeed <= 5:
+            return 3
+         elif mNeed <= 10:
+            return 4
+         else:
+            return 5'''
+         
+   expression2 = 'Status(!lTrl_mNeed!, !lTrl_p75C!)'
+   
    # Functions to run
    # LocalTrailsPP(inTrails, multFactor, inRadius, locPopSum, inPop, inMask, recAcc, recPP)
    # AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP, inMask, outGDB, "lTrl", 5, remNulls_n, multiplier)
-   zonalMean(inHex, hexFld, "lTrl_Acc", recAcc)
+   # zonalMean(inHex, hexFld, "lTrl_Acc", recAcc)
    # zonalMean(inHex, hexFld, "lTrl_p75C", recPP, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
-   travelBinary(travTime, 10, inPop, ttBin)
-   zonalMean(inHex, hexFld, "lTrl_tt10", ttBin, remNulls_n, 0, inPop)
-   zonalMean(inHex, hexFld, "lTrl_ttAvg", travTime, remNulls_n, 0, inPop)
+   # travelBinary(travTime, 10, inPop, ttBin)
+   # zonalMean(inHex, hexFld, "lTrl_tt10", ttBin, remNulls_n, 0, inPop)
+   # zonalMean(inHex, hexFld, "lTrl_ttAvg", travTime, remNulls_n, 0, inPop)
 
-   arcpy.AddField_management (inHex, "lTrl_bStat", "SHORT")
-   arcpy.CalculateField_management (inHex, "lTrl_bStat", expression, "PYTHON", codeblock)
+   # arcpy.AddField_management (inHex, "lTrl_bStat", "SHORT")
+   # arcpy.CalculateField_management (inHex, "lTrl_bStat", expression, "PYTHON", codeblock)
+   
+   arcpy.AddField_management (inHex, "lTrl_mStat", "SHORT")
+   arcpy.CalculateField_management (inHex, "lTrl_mStat", expression2, "PYTHON", codeblock2)
    
 if __name__ == '__main__':
    main()

@@ -1,7 +1,7 @@
 # wf_RegionalTrailsAnalysis.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2019-03-06
-# Last Edit: 2019-03-14
+# Last Edit: 2019-03-18
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -51,19 +51,41 @@ def main():
          
    expression = 'Status(!rTrl_bNeed!, !rTrl_p75C!)'
    
+   codeblock2 = '''def Status(mNeed, PP):
+      if mNeed == None:
+         return None
+      elif mNeed == 0: 
+         return 0
+      else: 
+         if PP > 15:
+            return 1
+         elif mNeed <= 1:
+            return 2
+         elif mNeed <= 5:
+            return 3
+         elif mNeed <= 10:
+            return 4
+         else:
+            return 5'''
+         
+   expression2 = 'Status(!rTrl_mNeed!, !rTrl_p75C!)'
+   
    # Functions to run
    # AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP_upd, inMask, outGDB, "rTrl", 5, remNulls_n, multiplier)
-   recSum = Con(IsNull(recAcc), 0, recAcc)
-   recSum.save(recAcc_upd)
-   zonalMean(inHex, hexFld, "rTrl_Acc", recAcc_upd)
+   # recSum = Con(IsNull(recAcc), 0, recAcc)
+   # recSum.save(recAcc_upd)
+   # zonalMean(inHex, hexFld, "rTrl_Acc", recAcc_upd)
    # zonalMean(inHex, hexFld, "rTrl_p75C", recPP_upd, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
-   travelBinary(travTime, 30, inPop, ttBin)
-   zonalMean(inHex, hexFld, "rTrl_tt30", ttBin, remNulls_n, 0, inPop)
-   zonalMean(inHex, hexFld, "rTrl_ttAvg", travTime, remNulls_n, 0, inPop)
+   # travelBinary(travTime, 30, inPop, ttBin)
+   # zonalMean(inHex, hexFld, "rTrl_tt30", ttBin, remNulls_n, 0, inPop)
+   # zonalMean(inHex, hexFld, "rTrl_ttAvg", travTime, remNulls_n, 0, inPop)
    
-   arcpy.AddField_management (inHex, "rTrl_bStat", "SHORT")
-   arcpy.CalculateField_management (inHex, "rTrl_bStat", expression, "PYTHON", codeblock)
+   # arcpy.AddField_management (inHex, "rTrl_bStat", "SHORT")
+   # arcpy.CalculateField_management (inHex, "rTrl_bStat", expression, "PYTHON", codeblock)
+   
+   arcpy.AddField_management (inHex, "rTrl_mStat", "SHORT")
+   arcpy.CalculateField_management (inHex, "rTrl_mStat", expression2, "PYTHON", codeblock2)
    
 if __name__ == '__main__':
    main()
