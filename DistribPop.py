@@ -2,7 +2,7 @@
 # DistribPop.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2018-10-03
-# Last Edit: 2019-02-19
+# Last Edit: 2019-03-20
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -108,7 +108,16 @@ def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir):
    fldPop = field within inBlocks designating the population for each block 
    inRoadDens = raster representing road density
    outPop = output raster representing population per pixel
-   tmpDir = directory to store intermediate files'''
+   tmpDir = directory to store intermediate files
+   
+   IMPORTANT PRE-PROCESSING NOTE: The block group polygons need to be clipped to the processing area prior to processing. Additional steps are needed to ensure correct population numbers derived from the block group data.
+      - PRIOR TO CLIPPING: Re-project the merged feature class to albers. Note that the "Shape_Area" field automatically updates, reflecting area in square meters.
+      - PRIOR TO CLIPPING: Add a new field, called "Orig_Area". Use the field calculator to populate the Orig_Area field from the Shape_Area field (so the two fields will have identical values).
+      - Clip the feature class to the processing buffer. Note that the Shape_Area field will again have automatically updated, and for clipped polygons, will now be lower than the value in Orig_Area. Polygons not clipped (i.e., those completely contained by the processing boundary) should still have the same values in both area fields.
+      - Add a new field, called TotPop_clip (long integer).
+      - Calculate the TotPop_clip field with this Python formula:  !B01001e1!* !Shape_Area!/ !Orig_Area!
+      The TotPop_clip field is the field to use for population, not the original block group population field.
+   '''
    
    # Apply environment settings
    arcpy.env.snapRaster = inRoadDens
