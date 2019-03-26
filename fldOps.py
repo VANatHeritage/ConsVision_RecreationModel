@@ -1,7 +1,7 @@
 # fldOps.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2019-03-13
-# Last Edit: 2019-03-18
+# Last Edit: 2019-03-26
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -127,55 +127,52 @@ def recModFields():
    
 def recModDomains():
    '''Sets up code-value pairs for coded domains.'''
-   
+   # Domain for rPrk_bStat and rPrk_mStat fields
    prk = collections.OrderedDict()
-   prk[0] = 'Benchmark Completely Met'
-   prk[1] = 'Benchmark Partially Met'
-   prk[2] = '≤ 5 Acres Needed to Meet Benchmark'
-   prk[3] = '5 - 10 Acres Needed to Meet Benchmark'
-   prk[4] = '10 - 15 Acres Needed to Meet Benchmark'
-   prk[5] = '> 15 Acres Needed to Meet Benchmark'
+   prk[0] = 'Benchmark Met'
+   prk[1] = '≤ 1 Acre Needed per 1000 Hexagons'
+   prk[2] = '1 - 10 Acres Needed per 1000 Hexagons'
+   prk[3] = '10 - 100 Acres Needed per 1000 Hexagons'
+   prk[4] = '100 - 1000 Acres Needed per 1000 Hexagons'
+   prk[5] = '> 1000 Acres Needed per 1000 Hexagons'
    
+   # Domain for lPrk_bStat and lPrk_mStat fields
    prk2 = collections.OrderedDict()
-   prk2[0] = 'Benchmark Completely Met'
-   prk2[1] = 'Benchmark Partially Met'
-   prk2[2] = '≤ 5 Acres Needed to Meet Benchmark'
-   prk2[3] = '5 - 25 Acres Needed to Meet Benchmark'
-   prk2[4] = '25 - 50 Acres Needed to Meet Benchmark'
-   prk2[5] = '> 50 Acres Needed to Meet Benchmark'
+   prk2[0] = 'Benchmark Met'
+   prk2[1] = '≤ 5 Acres Needed'
+   prk2[2] = '5 - 10 Acres Needed'
+   prk2[3] = '10 - 15 Acres Needed'
+   prk2[4] = '15 - 20 Acres Needed'
+   prk2[5] = '> 20 Acres Needed'
    
+   # Domain for rTrl_bStat and rTrl_mStat fields
    trl = collections.OrderedDict()
-   trl[0] = 'Benchmark Completely Met'
-   trl[1] = 'Benchmark Partially Met'
-   trl[2] = '≤ 1 Mile Needed to Meet Benchmark'
-   trl[3] = '1 - 2 Miles Needed to Meet Benchmark'
-   trl[4] = '2 - 3 Miles Needed to Meet Benchmark'
-   trl[5] = '> 3 Miles Needed to Meet Benchmark'
+   trl[0] = 'Benchmark Met'
+   trl[1] = '≤ 1 Mile Needed per 1000 Hexagons'
+   trl[2] = '1 - 10 Miles Needed per 1000 Hexagons'
+   trl[3] = '10 - 100 Miles Needed per 1000 Hexagons'
+   trl[4] = '100 - 1000 Miles Needed per 1000 Hexagons'
+   trl[5] = '> 1000 Miles Needed per 1000 Hexagons'
    
+   # Domain for lTrl_bStat and lTrl_mStat fields
    trl2 = collections.OrderedDict()
-   trl2[0] = 'Benchmark Completely Met'
-   trl2[1] = 'Benchmark Partially Met'
-   trl2[2] = '≤ 1 Mile Needed to Meet Benchmark'
-   trl2[3] = '1 - 5 Miles Needed to Meet Benchmark'
-   trl2[4] = '5 - 10 Miles Needed to Meet Benchmark'
-   trl2[5] = '> 10 Miles Needed to Meet Benchmark'
+   trl2[0] = 'Benchmark Met'
+   trl2[1] = '≤ 1 Mile Needed'
+   trl2[2] = '1 - 2 Miles Needed'
+   trl2[3] = '2 - 3 Miles Needed'
+   trl2[4] = '3 - 4 Miles Needed'
+   trl2[5] = '> 4 Miles Needed'
    
+   # Domain for aquatic *_bStat and *_mStat fields
    aqua = collections.OrderedDict()
-   aqua[0] = 'Benchmark Completely Met'
-   aqua[1] = 'Benchmark Partially Met'
-   aqua[2] = '≤ 1 Access Pt. Needed to Meet Benchmark'
-   aqua[3] = '1 - 2 Access Pts. Needed to Meet Benchmark'
-   aqua[4] = '2 - 3 Access Pts. Needed to Meet Benchmark'
-   aqua[5] = '> 3 Access Pts. Needed to Meet Benchmark'
+   aqua[0] = 'Benchmark Met'
+   aqua[1] = '≤ 1 Access Point Needed per 1000 Hexagons'
+   aqua[2] = '1 - 10 Access Points Needed per 1000 Hexagons'
+   aqua[3] = '10 - 100 Access Points Needed per 1000 Hexagons'
+   aqua[4] = '100 - 1000 Access Points Needed per 1000 Hexagons'
+   aqua[5] = '> 1000 Access Points Needed per 1000 Hexagons'
    
-   aqua2 = collections.OrderedDict()
-   aqua2[0] = 'Benchmark Completely Met'
-   aqua2[1] = 'Benchmark Partially Met'
-   aqua2[2] = '≤ 1 Access Pt. Needed to Meet Benchmark'
-   aqua2[3] = '1 - 5 Access Pts. Needed to Meet Benchmark'
-   aqua2[4] = '5 - 10 Access Pts. Needed to Meet Benchmark'
-   aqua2[5] = '> 10 Access Pts. Needed to Meet Benchmark'
-   
+   # Domain for aquaScore and terrScore fields
    summary = collections.OrderedDict()
    summary[0] = '0: Very High Need'
    summary[1] = '1: High Need'
@@ -184,7 +181,7 @@ def recModDomains():
    summary[4] = '4: Very Low Need'
    summary[5] = '5: All Benchmarks Met'
    
-   return (prk, prk2, trl, trl2, aqua, aqua2, summary)
+   return (prk, prk2, trl, trl2, aqua, summary)
    
 def attachCodedDomain(inGDB, inTab, inFld, domainName, domainDesc, codeDict):
    arcpy.CreateDomain_management(inGDB, domainName, domainDesc, "SHORT", "CODED")
@@ -193,35 +190,103 @@ def attachCodedDomain(inGDB, inTab, inFld, domainName, domainDesc, codeDict):
    arcpy.AssignDomainToField_management(inTab, inFld, domainName)
    
 def calcScores(inTab):
-   '''Calculates summary scores. Note that scores are rounded down when integerized.'''
+   '''Calculates summary scores. Note that scores are rounded down when integerized. Assumes very specific data structure with specific field names; will fail if not correct.'''
+   
    # Terrestrial Score
-   codeblock = '''def calcTerrScore(PopSum, f1, f2, f3, f4):
+   codeblock = '''def calcTerrScore(PopSum, rb1, rb2, lb1, lb2, d1, d2, w1, w2):
       sum = 0
-      for f in [f1, f2, f3, f4]:
-         val = 5 - f
+      for b in [rb1, rb2]:
+         val = 5 - b
          sum += val
-      score = sum/4
+      rbscore = sum/2
+      
+      sum = 0
+      for b in [lb1, lb2]:
+         val = 5 - b
+         sum += val
+      lbscore = sum/2
+      
+      sum = 0
+      for d in [d1, d2]:
+         if d <= 30:
+            val = 5
+         elif d <= 45:
+            val = 4
+         elif d <= 60:
+            val = 3
+         elif d <= 75:
+            val = 2
+         elif d <= 90:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      dscore = sum/2
+      
+      sum = 0
+      for w in [w1, w2]:
+         if w <= 10:
+            val = 5
+         elif w <= 15:
+            val = 4
+         elif w <= 20:
+            val = 3
+         elif w <= 25:
+            val = 2
+         elif w <= 30:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      wscore = sum/2
+      
+      regscore = (rbscore + dscore)/2
+      locscore = (lbscore + wscore)/2
+      comboscore = (regscore + locscore)/2
+      
       if PopSum == 0:
          return None
+      elif PopSum < 500:
+         return int(regscore)
       else:
-         return int(score)
+         return int(comboscore)
       '''
-   expression = "calcTerrScore(!PopSum!, !rPrk_bStat!, !lPrk_bStat!, !rTrl_bStat!, !lTrl_bStat!)"
+   expression = "calcTerrScore(!PopSum!, !rPrk_bStat!, !rTrl_bStat!, !lPrk_bStat!, !lTrl_bStat!, !rPrk_ttAvg!, !rTrl_ttAvg!, !lPrk_ttAvg!, !lTrl_ttAvg!)"
    arcpy.CalculateField_management (inTab, "terrScore", expression, "PYTHON", codeblock)
    
    # Aquatic Score
-   codeblock = '''def calcAquaScore(PopSum, f1, f2, f3):
+   codeblock = '''def calcAquaScore(PopSum, b1, b2, b3, t1, t2, t3):
       sum = 0
-      for f in [f1, f2, f3]:
-         val = 5 - f
+      for b in [b1, b2, b3]:
+         val = 5 - b
          sum += val
-      score = sum/3
+      bscore = sum/3
+      
+      sum = 0
+      for t in [t1, t2, t3]:
+         if t <= 30:
+            val = 5
+         elif t <= 45:
+            val = 4
+         elif t <= 60:
+            val = 3
+         elif t <= 75:
+            val = 2
+         elif t <= 90:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      tscore = sum/3
+      
+      score = (bscore + tscore)/2
+      
       if PopSum == 0:
          return None
       else:
          return int(score)
       '''
-   expression = "calcAquaScore(!PopSum!, !rBtl_bStat!, !rFsh_bStat!, !rSwm_bStat!)"
+   expression = "calcAquaScore(!PopSum!, !rBtl_bStat!, !rFsh_bStat!, !rSwm_bStat!, !rBtl_ttAvg!, !rFsh_ttAvg!, !rSwm_ttAvg!)"
    arcpy.CalculateField_management (inTab, "aquaScore", expression, "PYTHON", codeblock)
    
    return
@@ -231,38 +296,38 @@ def main():
    targetTab = r'F:\Working\RecMod\Outputs\VA_RecMod_CONUS\VA_RecMod.gdb\RecreationAccess_Final'
    inGDB = r'F:\Working\RecMod\Outputs\VA_RecMod_CONUS\VA_RecMod.gdb'
    
-   printMsg('Calculating scores...')
-   calcScores(inTab)
-   
    fldDict = recModFields()
    printMsg('Field data dictionary created. Adding fields...')
    addFields(targetTab, fldDict)
       
    printMsg('Setting up coded domain values...')
-   prk, prk2, trl, trl2, aqua, aqua2, summary = recModDomains()
+   prk, prk2, trl, trl2, aqua, summary = recModDomains()
    
    printMsg('Attaching domains to fields...')
    attachCodedDomain(inGDB, targetTab, 'rPrk_bStat', 'rPrk_bDomain', 'Regional Park Benchmark Status, Baseline', prk)
-   attachCodedDomain(inGDB, targetTab, 'lPrk_bStat', 'lPrk_bDomain', 'Local Park Benchmark Status, Baseline', prk)
+   attachCodedDomain(inGDB, targetTab, 'lPrk_bStat', 'lPrk_bDomain', 'Local Park Benchmark Status, Baseline', prk2)
    attachCodedDomain(inGDB, targetTab, 'rTrl_bStat', 'rTrl_bDomain', 'Regional Trail Benchmark Status, Baseline', trl)
-   attachCodedDomain(inGDB, targetTab, 'lTrl_bStat', 'lTrl_bDomain', 'Local Trail Benchmark Status, Baseline', trl)
+   attachCodedDomain(inGDB, targetTab, 'lTrl_bStat', 'lTrl_bDomain', 'Local Trail Benchmark Status, Baseline', trl2)
    attachCodedDomain(inGDB, targetTab, 'rBtl_bStat', 'rBtl_bDomain', 'Boating Benchmark Status, Baseline', aqua)
    attachCodedDomain(inGDB, targetTab, 'rFsh_bStat', 'rFsh_bDomain', 'Fishing Benchmark Status, Baseline', aqua)
    attachCodedDomain(inGDB, targetTab, 'rSwm_bStat', 'rSwm_bDomain', 'Swimming Benchmark Status, Baseline', aqua)
    
-   attachCodedDomain(inGDB, targetTab, 'rPrk_mStat', 'rPrk_mDomain', 'Regional Park Benchmark Status, Max', prk2)
+   attachCodedDomain(inGDB, targetTab, 'rPrk_mStat', 'rPrk_mDomain', 'Regional Park Benchmark Status, Max', prk)
    attachCodedDomain(inGDB, targetTab, 'lPrk_mStat', 'lPrk_mDomain', 'Local Park Benchmark Status, Max', prk2)
-   attachCodedDomain(inGDB, targetTab, 'rTrl_mStat', 'rTrl_mDomain', 'Regional Trail Benchmark Status, Max', trl2)
+   attachCodedDomain(inGDB, targetTab, 'rTrl_mStat', 'rTrl_mDomain', 'Regional Trail Benchmark Status, Max', trl)
    attachCodedDomain(inGDB, targetTab, 'lTrl_mStat', 'lTrl_mDomain', 'Local Trail Benchmark Status, Max', trl2)
-   attachCodedDomain(inGDB, targetTab, 'rBtl_mStat', 'rBtl_mDomain', 'Boating Benchmark Status, Max', aqua2)
-   attachCodedDomain(inGDB, targetTab, 'rFsh_mStat', 'rFsh_mDomain', 'Fishing Benchmark Status, Max', aqua2)
-   attachCodedDomain(inGDB, targetTab, 'rSwm_mStat', 'rSwm_mDomain', 'Swimming Benchmark Status, Max', aqua2)
+   attachCodedDomain(inGDB, targetTab, 'rBtl_mStat', 'rBtl_mDomain', 'Boating Benchmark Status, Max', aqua)
+   attachCodedDomain(inGDB, targetTab, 'rFsh_mStat', 'rFsh_mDomain', 'Fishing Benchmark Status, Max', aqua)
+   attachCodedDomain(inGDB, targetTab, 'rSwm_mStat', 'rSwm_mDomain', 'Swimming Benchmark Status, Max', aqua)
    
    attachCodedDomain(inGDB, targetTab, 'terrScore', 'terrScore_Domain', 'Terrestrial Benchmark Status', summary)
    attachCodedDomain(inGDB, targetTab, 'aquaScore', 'aquaScore_Domain', 'Aquatic Benchmark Status', summary)
    
    printMsg('Appending records...')
    arcpy.Append_management (inTab, targetTab, 'NO_TEST')
+   
+   printMsg('Calculating scores...')
+   calcScores(targetTab)
 
    printMsg('Done')
    

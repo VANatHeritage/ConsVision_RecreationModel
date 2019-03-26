@@ -1,7 +1,7 @@
 # wf_FishingAnalysis.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2019-03-06
-# Last Edit: 2019-03-18
+# Last Edit: 2019-03-26
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -34,62 +34,45 @@ def main():
    walkTime = r'F:\Working\RecMod\FinalDataToUse\local_access_walkNearest.gdb\walkNearest_access_a_afsh_20190221'
    ttBin_walk = outGDB + os.sep + 'lFsh_tt10'
    
-   codeblock = '''def Status(bNeed, PP):
+   codeblock = '''def Status(bNeed):
       if bNeed == None:
          return None
       elif bNeed == 0: 
          return 0
-      else: 
-         if PP > 1:
-            return 1
-         elif bNeed <= 1:
-            return 2
-         elif bNeed <= 2:
-            return 3
-         else:
-            return 4'''
+      elif bNeed <= 0.001:  
+         return 1
+      elif bNeed <= 0.01:
+         return 2
+      elif bNeed <= 0.1:
+         return 3
+      elif bNeed <= 1:
+         return 4
+      else:
+         return 5'''
          
-   expression = 'Status(!rFsh_bNeed!, !rFsh_p10K!)'
-   
-   codeblock2 = '''def Status(mNeed, PP):
-      if mNeed == None:
-         return None
-      elif mNeed == 0: 
-         return 0
-      else: 
-         if PP > 5:
-            return 1
-         elif mNeed <= 1:
-            return 2
-         elif mNeed <= 5:
-            return 3
-         elif mNeed <= 10:
-            return 4
-         else:
-            return 5'''
-         
-   expression2 = 'Status(!rFsh_mNeed!, !rFsh_p10K!)'
+   expression = 'Status(!rFsh_bNeed!)'
+   expression2 = 'Status(!rFsh_mNeed!)'
    
    # Functions to run
-   # AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP_upd, inMask, outGDB, "rFsh", 5, remNulls_n, multiplier)
-   # recSum = Con(IsNull(recAcc), 0, recAcc)
-   # recSum.save(recAcc_upd)
-   # zonalMean(inHex, hexFld, "rFsh_Acc", recAcc_upd)
-   # zonalMean(inHex, hexFld, "rFsh_p10K", recPP_upd, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
+   AssessRecNeed(inHex, hexFld, BenchVal, inPop, recPP_upd, inMask, outGDB, "rFsh", 5, remNulls_n, multiplier)
+   recSum = Con(IsNull(recAcc), 0, recAcc)
+   recSum.save(recAcc_upd)
+   zonalMean(inHex, hexFld, "rFsh_Acc", recAcc_upd)
+   zonalMean(inHex, hexFld, "rFsh_p10K", recPP_upd, remNulls_n, 0, inPop, 0, multiplier, unitUpdate)
    
-   # travelBinary(driveTime, 30, inPop, ttBin_drive)
-   # zonalMean(inHex, hexFld, "rFsh_tt30", ttBin_drive, remNulls_n, 0, inPop)
-   # zonalMean(inHex, hexFld, "rFsh_ttAvg", driveTime, remNulls_n, 0, inPop)
+   travelBinary(driveTime, 30, inPop, ttBin_drive)
+   zonalMean(inHex, hexFld, "rFsh_tt30", ttBin_drive, remNulls_n, 0, inPop)
+   zonalMean(inHex, hexFld, "rFsh_ttAvg", driveTime, remNulls_n, 0, inPop)
    
-   # travelBinary(walkTime, 10, inPop, ttBin_walk)
-   # zonalMean(inHex, hexFld, "lFsh_tt10", ttBin_walk, remNulls_n, 0, inPop)
-   # zonalMean(inHex, hexFld, "lFsh_ttAvg", walkTime, remNulls_n, 0, inPop)
+   travelBinary(walkTime, 10, inPop, ttBin_walk)
+   zonalMean(inHex, hexFld, "lFsh_tt10", ttBin_walk, remNulls_n, 0, inPop)
+   zonalMean(inHex, hexFld, "lFsh_ttAvg", walkTime, remNulls_n, 0, inPop)
    
-   # arcpy.AddField_management (inHex, "rFsh_bStat", "SHORT")
-   # arcpy.CalculateField_management (inHex, "rFsh_bStat", expression, "PYTHON", codeblock)
+   arcpy.AddField_management (inHex, "rFsh_bStat", "SHORT")
+   arcpy.CalculateField_management (inHex, "rFsh_bStat", expression, "PYTHON", codeblock)
    
    arcpy.AddField_management (inHex, "rFsh_mStat", "SHORT")
-   arcpy.CalculateField_management (inHex, "rFsh_mStat", expression2, "PYTHON", codeblock2)
+   arcpy.CalculateField_management (inHex, "rFsh_mStat", expression2, "PYTHON", codeblock)
    
 if __name__ == '__main__':
    main()

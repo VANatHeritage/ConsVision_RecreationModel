@@ -1,0 +1,1539 @@
+{
+  "adminLayerInfo" : {
+    "tableName" : "db_12596.user_12596.VA_RECMOD_2019_RECREATIONACCESS2", 
+    "geometryField" : {"name" : "Shape"}, 
+    "xssTrustedFields" : "", 
+    "viewLayerDefinition" : {
+      "sourceServiceName" : "VA_RecMod_2019", 
+      "sourceLayerId" : 0, 
+      "sourceId" : 2007, 
+      "sourceLayerFields" : "*"
+    }
+  }, 
+  "id" : 0, 
+  "name" : "RecreationAccess", 
+  "type" : "Feature Layer", 
+  "isView" : true, 
+  "isUpdatableView" : true, 
+  "sourceSchemaChangesAllowed" : true, 
+  "displayField" : "Unique_ID", 
+  "description" : "This vector dataset was developed to quantify access to outdoor recreation opportunities in Virginia, and to identify where more recreational access is needed. It contains 1.5-mile-diameter hexagons, with attributes quantifying access to parks and other recreation lands, trails, boating, fishing, and swimming. It is intended to assist land planners and granting organziations in prioritizing lands for conservation and recreation access.", 
+  "copyrightText" : "Virginia Natural Heritage Program (Kirsten Hazler and David Bucklin)", 
+  "defaultVisibility" : true, 
+  "editingInfo" : {
+    "lastEditDate" : 1553555074064
+  }, 
+  "relationships" : [], 
+  "isDataVersioned" : false, 
+  "supportsAppend" : true, 
+  "supportsCalculate" : true, 
+  "supportsASyncCalculate" : true, 
+  "supportsTruncate" : false, 
+  "supportsAttachmentsByUploadId" : true, 
+  "supportsAttachmentsResizing" : true, 
+  "supportsRollbackOnFailureParameter" : true, 
+  "supportsStatistics" : true, 
+  "supportsExceedsLimitStatistics" : true, 
+  "supportsAdvancedQueries" : true, 
+  "supportsValidateSql" : true, 
+  "supportsCoordinatesQuantization" : true, 
+  "supportsFieldDescriptionProperty" : true, 
+  "supportsQuantizationEditMode" : true, 
+  "supportsApplyEditsWithGlobalIds" : false, 
+  "supportsMultiScaleGeometry" : true, 
+  "supportsReturningQueryGeometry" : true, 
+  "hasGeometryProperties" : true, 
+  "geometryProperties" : 
+  {
+    "shapeAreaFieldName" : "Shape__Area", 
+    "shapeLengthFieldName" : "Shape__Length"
+  }, 
+  "advancedQueryCapabilities" : {
+    "supportsPagination" : true, 
+    "supportsPaginationOnAggregatedQueries" : true, 
+    "supportsQueryRelatedPagination" : true, 
+    "supportsQueryWithDistance" : true, 
+    "supportsReturningQueryExtent" : true, 
+    "supportsStatistics" : true, 
+    "supportsOrderBy" : true, 
+    "supportsDistinct" : true, 
+    "supportsQueryWithResultType" : true, 
+    "supportsSqlExpression" : true, 
+    "supportsAdvancedQueryRelated" : true, 
+    "supportsCountDistinct" : true, 
+    "supportsReturningGeometryCentroid" : true, 
+    "supportsReturningGeometryProperties" : true, 
+    "supportsQueryWithDatumTransformation" : true, 
+    "supportsHavingClause" : true, 
+    "supportsOutFieldSQLExpression" : true, 
+    "supportsMaxRecordCountFactor" : true, 
+    "supportsTopFeaturesQuery" : true, 
+    "supportsDisjointSpatialRel" : true
+  }, 
+  "useStandardizedQueries" : true, 
+  "geometryType" : "esriGeometryPolygon", 
+  "minScale" : 0, 
+  "maxScale" : 0, 
+  "extent" : {
+    "xmin" : -374288.90510000288, 
+    "ymin" : 57910.761799998581, 
+    "xmax" : 376628.77920000255, 
+    "ymax" : 385849.691300001, 
+    "spatialReference" : {
+      "wkid" : 3968, 
+      "latestWkid" : 3968
+    }
+  }, 
+  "drawingInfo":{"renderer":{"visualVariables":[{"type":"sizeInfo","target":"outline","expression":"view.scale","valueExpression":"$view.scale","stops":[{"size":1.5,"value":44205},{"size":0.75,"value":138141},{"size":0.375,"value":552563},{"size":0,"value":1105126}]}],"type":"uniqueValue","field1":"rBtl_bStat","defaultSymbol":null,"uniqueValueInfos":[{"value":"0","label":"Benchmark Met","symbol":{"color":[39,145,198,255],"outline":{"color":[153,153,153,64],"width":0.75,"type":"esriSLS","style":"esriSLSSolid"},"type":"esriSFS","style":"esriSFSSolid"}},{"value":"1","label":"≤ 1 Access Point Needed per 1000 Hexagons","symbol":{"color":[139,183,163,255],"outline":{"color":[153,153,153,64],"width":0.75,"type":"esriSLS","style":"esriSLSSolid"},"type":"esriSFS","style":"esriSFSSolid"}},{"value":"2","label":"1 - 10 Access Points Needed per 1000 Hexagons","symbol":{"color":[215,226,124,255],"outline":{"color":[153,153,153,64],"width":0.75,"type":"esriSLS","style":"esriSLSSolid"},"type":"esriSFS","style":"esriSFSSolid"}},{"value":"3","label":"10 - 100 Access Points Needed per 1000 Hexagons","symbol":{"color":[252,206,80,255],"outline":{"color":[153,153,153,64],"width":0.75,"type":"esriSLS","style":"esriSLSSolid"},"type":"esriSFS","style":"esriSFSSolid"}},{"value":"4","label":"100 - 1000 Access Points Needed per 1000 Hexagons","symbol":{"color":[247,122,44,255],"outline":{"color":[153,153,153,64],"width":0.75,"type":"esriSLS","style":"esriSLSSolid"},"type":"esriSFS","style":"esriSFSSolid"}},{"value":"5","label":"\u003e 1000 Access Points Needed per 1000 Hexagons","symbol":{"color":[232,20,20,255],"outline":{"color":[153,153,153,64],"width":0.75,"type":"esriSLS","style":"esriSLSSolid"},"type":"esriSFS","style":"esriSFSSolid"}}]},"transparency":0}, 
+  "allowGeometryUpdates" : true, 
+  "hasAttachments" : false, 
+  "viewSourceHasAttachments" : false, 
+  "htmlPopupType" : "esriServerHTMLPopupTypeAsHTMLText", 
+  "hasM" : false, 
+  "hasZ" : false, 
+  "objectIdField" : "OBJECTID", 
+  "globalIdField" : "", 
+  "typeIdField" : "rBtl_bStat", 
+  "fields" : [
+    {
+      "name" : "OBJECTID", 
+      "type" : "esriFieldTypeOID", 
+      "alias" : "OBJECTID", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : false, 
+      "editable" : false, 
+      "visible" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "Unique_ID", 
+      "type" : "esriFieldTypeInteger", 
+      "alias" : "Unique_ID", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "Hex_Area", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Hex_Area", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "PopSum", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "PopSum", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rPrk_bNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Reg. Parks Base Need, Acres", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rPrk_mNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Reg. Parks Max Need, Acres", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rPrk_Acc", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Reg. Park Acres in Range", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rPrk_p1K", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Reg. Park Acres per 1000", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rPrk_tt30", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Prop. w/in 30 Min. of Reg. Park", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rPrk_ttAvg", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Avg. Drive Time to Reg. Park", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rPrk_bStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Reg. Parks Baseline Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rPrk_bDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Acre Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Acres Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Acres Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Acres Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Acres Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rPrk_mStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Reg. Parks Max Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rPrk_mDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Acre Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Acres Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Acres Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Acres Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Acres Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lPrk_bNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Loc. Parks Base Need, Acres", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lPrk_mNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Loc. Parks Max Need, Acres", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lPrk_Acc", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Loc. Park Acres in Range", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lPrk_p1K", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Loc. Park Acres per 1000", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lPrk_tt10", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Prop. w/in 10 Min. of Loc. Park", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lPrk_ttAvg", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Avg. Walk Time to Loc. Park", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lPrk_bStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Loc. Parks Baseline Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "lPrk_bDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 5 Acres Needed", 
+            "code" : 1
+          }, 
+          {
+            "name" : "5 - 10 Acres Needed", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 15 Acres Needed", 
+            "code" : 3
+          }, 
+          {
+            "name" : "15 - 20 Acres Needed", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 20 Acres Needed", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null, 
+      "description" : "null"
+    }, 
+    {
+      "name" : "lPrk_mStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Loc. Parks Max Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "lPrk_mDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 5 Acres Needed", 
+            "code" : 1
+          }, 
+          {
+            "name" : "5 - 10 Acres Needed", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 15 Acres Needed", 
+            "code" : 3
+          }, 
+          {
+            "name" : "15 - 20 Acres Needed", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 20 Acres Needed", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rTrl_bNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Reg. Trails Base Need, Miles", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rTrl_mNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Reg. Trails Max Need, Miles", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rTrl_Acc", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Reg. Trail Miles in Range", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rTrl_p75C", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Reg. Trail Miles per 7500", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rTrl_tt30", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Prop. w/in 30 Min. of Reg. Trail", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rTrl_ttAvg", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Avg. Drive Time to Reg. Trail", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rTrl_bStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Reg. Trails Baseline Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rTrl_bDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Mile Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Miles Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Miles Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Miles Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Miles Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rTrl_mStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Reg. Trails Max Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rTrl_mDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Mile Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Miles Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Miles Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Miles Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Miles Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lTrl_bNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Loc. Trails Base Need, Miles", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lTrl_mNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Loc. Trails Max Need, Miles", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lTrl_Acc", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Loc. Trail Miles in Range", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lTrl_p75C", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Loc. Trail Miles per 7500", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lTrl_tt10", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Prop. w/in 10 Min. of Loc. Trail", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lTrl_ttAvg", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Avg. Walk Time to Loc. Trail", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lTrl_bStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Loc. Trails Baseline Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "lTrl_bDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Mile Needed", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 2 Miles Needed", 
+            "code" : 2
+          }, 
+          {
+            "name" : "2 - 3 Miles Needed", 
+            "code" : 3
+          }, 
+          {
+            "name" : "3 - 4 Miles Needed", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 4 Miles Needed", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lTrl_mStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Loc. Trails Max Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "lTrl_mDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Mile Needed", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 2 Miles Needed", 
+            "code" : 2
+          }, 
+          {
+            "name" : "2 - 3 Miles Needed", 
+            "code" : 3
+          }, 
+          {
+            "name" : "3 - 4 Miles Needed", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 4 Miles Needed", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rBtl_bNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Boating Base Need, Access Pts.", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rBtl_mNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Boating Max Need, Access Pts.", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rBtl_Acc", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Boating Access Pts. in Range", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rBtl_p10K", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Boating Access Pts. per 10,000", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rBtl_tt30", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Prop. w/in 30 Min. of Boating", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rBtl_ttAvg", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Avg. Drive Time to Boating", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rBtl_bStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Boating Baseline Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rBtl_bDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Access Point Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Access Points Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Access Points Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rBtl_mStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Boating Max Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rBtl_mDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Access Point Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Access Points Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Access Points Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rFsh_bNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Fishing Base Need, Access Pts.", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rFsh_mNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Fishing Max Need, Access Pts.", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rFsh_Acc", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Fishing Access Pts. in Range", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rFsh_p10K", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Fishing Access Pts. per 10,000", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rFsh_tt30", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Prop. w/in 30 Min. of Fishing", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rFsh_ttAvg", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Avg. Drive Time to Fishing", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lFsh_tt10", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Prop. w/in 10 Min. of Fishing", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lFsh_ttAvg", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Avg. Walk Time to Fishing", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rFsh_bStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Fishing Baseline Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rFsh_bDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Access Point Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Access Points Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Access Points Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rFsh_mStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Fishing Max Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rFsh_mDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Access Point Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Access Points Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Access Points Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rSwm_bNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Swimming Base Need, Access Pts.", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rSwm_mNeed", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Swimming Max Need, Access Pts.", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rSwm_Acc", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Swimming Access Pts. in Range", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rSwm_p10K", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Swimming Access Pts. per 10,000", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rSwm_tt30", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Prop. w/in 30 Min. of Swimming", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rSwm_ttAvg", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Avg. Drive Time to Swimming", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lSwm_tt10", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Prop. w/in 10 Min. of Swimming", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "lSwm_ttAvg", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Avg. Walk Time to Swimming", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rSwm_bStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Swimming Baseline Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rSwm_bDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Access Point Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Access Points Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Access Points Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "rSwm_mStat", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Swimming Max Benchmark Status", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "rSwm_mDomain", 
+        "codedValues" : [
+          {
+            "name" : "Benchmark Met", 
+            "code" : 0
+          }, 
+          {
+            "name" : "≤ 1 Access Point Needed per 1000 Hexagons", 
+            "code" : 1
+          }, 
+          {
+            "name" : "1 - 10 Access Points Needed per 1000 Hexagons", 
+            "code" : 2
+          }, 
+          {
+            "name" : "10 - 100 Access Points Needed per 1000 Hexagons", 
+            "code" : 3
+          }, 
+          {
+            "name" : "100 - 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 4
+          }, 
+          {
+            "name" : "\u003e 1000 Access Points Needed per 1000 Hexagons", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "terrScore", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Terrestrial Recreation Score", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "RecreationAccess_terrScore_000a1400-65ba-446c-886f-8dfbc9524a69", 
+        "codedValues" : [
+          {
+            "name" : "0: Very High Need", 
+            "code" : 0
+          }, 
+          {
+            "name" : "1: High Need", 
+            "code" : 1
+          }, 
+          {
+            "name" : "2: Moderate Need", 
+            "code" : 2
+          }, 
+          {
+            "name" : "3: Low Need", 
+            "code" : 3
+          }, 
+          {
+            "name" : "4: Very Low Need", 
+            "code" : 4
+          }, 
+          {
+            "name" : "5: All Benchmarks Met", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null, 
+      "description" : "null"
+    }, 
+    {
+      "name" : "aquaScore", 
+      "type" : "esriFieldTypeSmallInteger", 
+      "alias" : "Aquatic Recreation Score", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : true, 
+      "domain" : 
+      {
+        "type" : "codedValue", 
+        "name" : "RecreationAccess_aquaScore_98d47b93-5472-480b-8b44-a4ef28c8ab8f", 
+        "codedValues" : [
+          {
+            "name" : "0: Very High Need", 
+            "code" : 0
+          }, 
+          {
+            "name" : "1: High Need", 
+            "code" : 1
+          }, 
+          {
+            "name" : "2: Moderate Need", 
+            "code" : 2
+          }, 
+          {
+            "name" : "3: Low Need", 
+            "code" : 3
+          }, 
+          {
+            "name" : "4: Very Low Need", 
+            "code" : 4
+          }, 
+          {
+            "name" : "5: All Benchmarks Met", 
+            "code" : 5
+          }
+        ]
+      }, 
+      "defaultValue" : null, 
+      "description" : "null"
+    }, 
+    {
+      "name" : "Shape__Area", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Shape__Area", 
+      "sqlType" : "sqlTypeDouble", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "Shape__Length", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Shape__Length", 
+      "sqlType" : "sqlTypeDouble", 
+      "nullable" : true, 
+      "editable" : true, 
+      "visible" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }
+  ], 
+  "indexes" : [
+    {
+      "name" : "Shape__Area_Index", 
+      "fields" : "Shape__Area", 
+      "isAscending" : true, 
+      "isUnique" : false, 
+      "description" : ""
+    }, 
+    {
+      "name" : "Shape__Length_Index", 
+      "fields" : "Shape__Length", 
+      "isAscending" : true, 
+      "isUnique" : false, 
+      "description" : ""
+    }, 
+    {
+      "name" : "PK__VA_RECMO__F4B70D85324C9F61", 
+      "fields" : "OBJECTID", 
+      "isAscending" : true, 
+      "isUnique" : true, 
+      "description" : "clustered, unique, primary key"
+    }, 
+    {
+      "name" : "user_12596.VA_RECMOD_2019_RECREATIONACCESS2_Shape_sidx", 
+      "fields" : "Shape", 
+      "isAscending" : false, 
+      "isUnique" : false, 
+      "description" : "Shape Index"
+    }
+  ], 
+  "types" : [
+    {
+      "id" : 0, 
+      "name" : "Benchmark Met", 
+      "domains" : 
+      {
+      }, 
+      "templates" : [
+        {
+          "name" : "Benchmark Met", 
+          "description" : "", 
+          "drawingTool" : "esriFeatureEditToolNone", 
+          "prototype" : {
+            "attributes" : {
+              "rBtl_bStat" : 0, 
+              "PopSum" : null, 
+              "rBtl_bNeed" : null, 
+              "rBtl_mNeed" : null, 
+              "rBtl_Acc" : null, 
+              "rBtl_p10K" : null, 
+              "rBtl_tt30" : null, 
+              "rBtl_ttAvg" : null, 
+              "rBtl_mStat" : null, 
+              "aquaScore" : null
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "id" : 1, 
+      "name" : "≤ 1 Access Point Needed per 1000 Hexagons", 
+      "domains" : 
+      {
+      }, 
+      "templates" : [
+        {
+          "name" : "≤ 1 Access Point Needed per 1000 Hexagons", 
+          "description" : "", 
+          "drawingTool" : "esriFeatureEditToolNone", 
+          "prototype" : {
+            "attributes" : {
+              "rBtl_bStat" : 1, 
+              "PopSum" : null, 
+              "rBtl_bNeed" : null, 
+              "rBtl_mNeed" : null, 
+              "rBtl_Acc" : null, 
+              "rBtl_p10K" : null, 
+              "rBtl_tt30" : null, 
+              "rBtl_ttAvg" : null, 
+              "rBtl_mStat" : null, 
+              "aquaScore" : null
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "id" : 2, 
+      "name" : "1 - 10 Access Points Needed per 1000 Hexagons", 
+      "domains" : 
+      {
+      }, 
+      "templates" : [
+        {
+          "name" : "1 - 10 Access Points Needed per 1000 Hexagons", 
+          "description" : "", 
+          "drawingTool" : "esriFeatureEditToolNone", 
+          "prototype" : {
+            "attributes" : {
+              "rBtl_bStat" : 2, 
+              "PopSum" : null, 
+              "rBtl_bNeed" : null, 
+              "rBtl_mNeed" : null, 
+              "rBtl_Acc" : null, 
+              "rBtl_p10K" : null, 
+              "rBtl_tt30" : null, 
+              "rBtl_ttAvg" : null, 
+              "rBtl_mStat" : null, 
+              "aquaScore" : null
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "id" : 3, 
+      "name" : "10 - 100 Access Points Needed per 1000 Hexagons", 
+      "domains" : 
+      {
+      }, 
+      "templates" : [
+        {
+          "name" : "10 - 100 Access Points Needed per 1000 Hexagons", 
+          "description" : "", 
+          "drawingTool" : "esriFeatureEditToolNone", 
+          "prototype" : {
+            "attributes" : {
+              "rBtl_bStat" : 3, 
+              "PopSum" : null, 
+              "rBtl_bNeed" : null, 
+              "rBtl_mNeed" : null, 
+              "rBtl_Acc" : null, 
+              "rBtl_p10K" : null, 
+              "rBtl_tt30" : null, 
+              "rBtl_ttAvg" : null, 
+              "rBtl_mStat" : null, 
+              "aquaScore" : null
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "id" : 4, 
+      "name" : "100 - 1000 Access Points Needed per 1000 Hexagons", 
+      "domains" : 
+      {
+      }, 
+      "templates" : [
+        {
+          "name" : "100 - 1000 Access Points Needed per 1000 Hexagons", 
+          "description" : "", 
+          "drawingTool" : "esriFeatureEditToolNone", 
+          "prototype" : {
+            "attributes" : {
+              "rBtl_bStat" : 4, 
+              "PopSum" : null, 
+              "rBtl_bNeed" : null, 
+              "rBtl_mNeed" : null, 
+              "rBtl_Acc" : null, 
+              "rBtl_p10K" : null, 
+              "rBtl_tt30" : null, 
+              "rBtl_ttAvg" : null, 
+              "rBtl_mStat" : null, 
+              "aquaScore" : null
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "id" : 5, 
+      "name" : "\u003e 1000 Access Points Needed per 1000 Hexagons", 
+      "domains" : 
+      {
+      }, 
+      "templates" : [
+        {
+          "name" : "\u003e 1000 Access Points Needed per 1000 Hexagons", 
+          "description" : "", 
+          "drawingTool" : "esriFeatureEditToolNone", 
+          "prototype" : {
+            "attributes" : {
+              "rBtl_bStat" : 5, 
+              "PopSum" : null, 
+              "rBtl_bNeed" : null, 
+              "rBtl_mNeed" : null, 
+              "rBtl_Acc" : null, 
+              "rBtl_p10K" : null, 
+              "rBtl_tt30" : null, 
+              "rBtl_ttAvg" : null, 
+              "rBtl_mStat" : null, 
+              "aquaScore" : null
+            }
+          }
+        }
+      ]
+    }
+  ], 
+  "templates" : [], 
+  "supportedQueryFormats" : "JSON, geoJSON", 
+  "hasStaticData" : false, 
+  "maxRecordCount" : 30000, 
+  "standardMaxRecordCount" : 20000, 
+  "tileMaxRecordCount" : 20000, 
+  "maxRecordCountFactor" : 5, 
+  "capabilities" : "Query", 
+  "exceedsLimitFactor" : 1
+}
