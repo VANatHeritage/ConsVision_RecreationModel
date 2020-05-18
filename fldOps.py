@@ -1,7 +1,7 @@
 # fldOps.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2019-03-13
-# Last Edit: 2019-03-26
+# Last Edit: 2020-05-18
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -290,7 +290,463 @@ def calcScores(inTab):
    arcpy.CalculateField_management (inTab, "aquaScore", expression, "PYTHON", codeblock)
    
    return
+
+def terrScore_bt(inTab):
+   '''alculates summary terrestrial score, version BT. Note that scores are rounded down when integerized. Assumes very specific data structure with specific field names; will fail if not correct.'''
    
+   # Version BT = same as original score version, but applying heavier weight to travel time scores
+   codeblock = '''def calcTerrScore(PopSum, rb1, rb2, lb1, lb2, d1, d2, w1, w2):
+      sum = 0
+      for b in [rb1, rb2]:
+         val = 5 - b
+         sum += val
+      rbscore = sum/2
+      
+      sum = 0
+      for b in [lb1, lb2]:
+         val = 5 - b
+         sum += val
+      lbscore = sum/2
+      
+      sum = 0
+      for d in [d1, d2]:
+         if d <= 30:
+            val = 5
+         elif d <= 45:
+            val = 4
+         elif d <= 60:
+            val = 3
+         elif d <= 75:
+            val = 2
+         elif d <= 90:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      dscore = sum/2
+      
+      sum = 0
+      for w in [w1, w2]:
+         if w <= 10:
+            val = 5
+         elif w <= 15:
+            val = 4
+         elif w <= 20:
+            val = 3
+         elif w <= 25:
+            val = 2
+         elif w <= 30:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      wscore = sum/2
+      
+      regscore = (rbscore + 2*dscore)/3
+      locscore = (lbscore + 2*wscore)/3
+      comboscore = (regscore + locscore)/2
+      
+      if PopSum == 0:
+         return None
+      elif PopSum < 500:
+         return int(regscore)
+      else:
+         return int(comboscore)
+      '''
+   expression = "calcTerrScore(!PopSum!, !rPrk_bStat!, !rTrl_bStat!, !lPrk_bStat!, !lTrl_bStat!, !rPrk_ttAvg!, !rTrl_ttAvg!, !lPrk_ttAvg!, !lTrl_ttAvg!)"
+   arcpy.CalculateField_management (inTab, "terrScore_bt", expression, "PYTHON", codeblock)
+   
+def terrScore_me(inTab):
+   '''Calculates summary terrestrial score, version ME. Note that scores are rounded down when integerized. Assumes very specific data structure with specific field names; will fail if not correct.'''
+   
+   # Version ME = same as original score version, but using maximum instead of baseline benchmarks
+   codeblock = '''def calcTerrScore(PopSum, rb1, rb2, lb1, lb2, d1, d2, w1, w2):
+      sum = 0
+      for b in [rb1, rb2]:
+         val = 5 - b
+         sum += val
+      rbscore = sum/2
+      
+      sum = 0
+      for b in [lb1, lb2]:
+         val = 5 - b
+         sum += val
+      lbscore = sum/2
+      
+      sum = 0
+      for d in [d1, d2]:
+         if d <= 30:
+            val = 5
+         elif d <= 45:
+            val = 4
+         elif d <= 60:
+            val = 3
+         elif d <= 75:
+            val = 2
+         elif d <= 90:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      dscore = sum/2
+      
+      sum = 0
+      for w in [w1, w2]:
+         if w <= 10:
+            val = 5
+         elif w <= 15:
+            val = 4
+         elif w <= 20:
+            val = 3
+         elif w <= 25:
+            val = 2
+         elif w <= 30:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      wscore = sum/2
+      
+      regscore = (rbscore + dscore)/2
+      locscore = (lbscore + wscore)/2
+      comboscore = (regscore + locscore)/2
+      
+      if PopSum == 0:
+         return None
+      elif PopSum < 500:
+         return int(regscore)
+      else:
+         return int(comboscore)
+      '''
+   expression = "calcTerrScore(!PopSum!, !rPrk_mStat!, !rTrl_mStat!, !lPrk_mStat!, !lTrl_mStat!, !rPrk_ttAvg!, !rTrl_ttAvg!, !lPrk_ttAvg!, !lTrl_ttAvg!)"
+   arcpy.CalculateField_management (inTab, "terrScore_me", expression, "PYTHON", codeblock)
+
+def terrScore_mt(inTab):
+   '''Calculates summary terrestrial score, version MT. Note that scores are rounded down when integerized. Assumes very specific data structure with specific field names; will fail if not correct.'''
+   
+   # Version MT = same as version BT, but using maximum instead of baseline benchmarks
+   codeblock = '''def calcTerrScore(PopSum, rb1, rb2, lb1, lb2, d1, d2, w1, w2):
+      sum = 0
+      for b in [rb1, rb2]:
+         val = 5 - b
+         sum += val
+      rbscore = sum/2
+      
+      sum = 0
+      for b in [lb1, lb2]:
+         val = 5 - b
+         sum += val
+      lbscore = sum/2
+      
+      sum = 0
+      for d in [d1, d2]:
+         if d <= 30:
+            val = 5
+         elif d <= 45:
+            val = 4
+         elif d <= 60:
+            val = 3
+         elif d <= 75:
+            val = 2
+         elif d <= 90:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      dscore = sum/2
+      
+      sum = 0
+      for w in [w1, w2]:
+         if w <= 10:
+            val = 5
+         elif w <= 15:
+            val = 4
+         elif w <= 20:
+            val = 3
+         elif w <= 25:
+            val = 2
+         elif w <= 30:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      wscore = sum/2
+      
+      regscore = (rbscore + 2*dscore)/3
+      locscore = (lbscore + 2*wscore)/3
+      comboscore = (regscore + locscore)/2
+      
+      if PopSum == 0:
+         return None
+      elif PopSum < 500:
+         return int(regscore)
+      else:
+         return int(comboscore)
+      '''
+   expression = "calcTerrScore(!PopSum!, !rPrk_mStat!, !rTrl_mStat!, !lPrk_mStat!, !lTrl_mStat!, !rPrk_ttAvg!, !rTrl_ttAvg!, !lPrk_ttAvg!, !lTrl_ttAvg!)"
+   arcpy.CalculateField_management (inTab, "terrScore_mt", expression, "PYTHON", codeblock)
+
+def terrScore_bme(inTab):
+   '''Calculates summary terrestrial score, version BME. Note that scores are rounded down when integerized. Assumes very specific data structure with specific field names; will fail if not correct.'''
+   
+   # Version BME = same as original score version, but using combination of maximum and baseline benchmarks
+   codeblock = '''def calcTerrScore(PopSum, rb1, rm1, rb2, rm2, lb1, lm1, lb2, lm2, d1, d2, w1, w2):
+      sum = 0
+      for b in [rb1, rm1, rb2, rm2]:
+         val = 5 - b
+         sum += val
+      rbscore = sum/4
+      
+      sum = 0
+      for b in [lb1, lm1, lb2, lm2]:
+         val = 5 - b
+         sum += val
+      lbscore = sum/4
+      
+      sum = 0
+      for d in [d1, d2]:
+         if d <= 30:
+            val = 5
+         elif d <= 45:
+            val = 4
+         elif d <= 60:
+            val = 3
+         elif d <= 75:
+            val = 2
+         elif d <= 90:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      dscore = sum/2
+      
+      sum = 0
+      for w in [w1, w2]:
+         if w <= 10:
+            val = 5
+         elif w <= 15:
+            val = 4
+         elif w <= 20:
+            val = 3
+         elif w <= 25:
+            val = 2
+         elif w <= 30:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      wscore = sum/2
+      
+      regscore = (rbscore + dscore)/2
+      locscore = (lbscore + wscore)/2
+      comboscore = (regscore + locscore)/2
+      
+      if PopSum == 0:
+         return None
+      elif PopSum < 500:
+         return int(regscore)
+      else:
+         return int(comboscore)
+      '''
+   expression = "calcTerrScore(!PopSum!, !rPrk_bStat!, !rPrk_mStat!, !rTrl_bStat!, !rTrl_mStat!, !lPrk_bStat!, !lPrk_mStat!, !lTrl_bStat!, !lTrl_mStat!, !rPrk_ttAvg!, !rTrl_ttAvg!, !lPrk_ttAvg!, !lTrl_ttAvg!)"
+   arcpy.CalculateField_management (inTab, "terrScore_bme", expression, "PYTHON", codeblock)
+
+def terrScore_bmt(inTab):
+   '''Calculates summary terrestrial score, version BME. Note that scores are rounded down when integerized. Assumes very specific data structure with specific field names; will fail if not correct.'''
+   
+   # Version BMT = same as version BME, but applying heavier weight to travel time scores
+   codeblock = '''def calcTerrScore(PopSum, rb1, rm1, rb2, rm2, lb1, lm1, lb2, lm2, d1, d2, w1, w2):
+      sum = 0
+      for b in [rb1, rm1, rb2, rm2]:
+         val = 5 - b
+         sum += val
+      rbscore = sum/4
+      
+      sum = 0
+      for b in [lb1, lm1, lb2, lm2]:
+         val = 5 - b
+         sum += val
+      lbscore = sum/4
+      
+      sum = 0
+      for d in [d1, d2]:
+         if d <= 30:
+            val = 5
+         elif d <= 45:
+            val = 4
+         elif d <= 60:
+            val = 3
+         elif d <= 75:
+            val = 2
+         elif d <= 90:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      dscore = sum/2
+      
+      sum = 0
+      for w in [w1, w2]:
+         if w <= 10:
+            val = 5
+         elif w <= 15:
+            val = 4
+         elif w <= 20:
+            val = 3
+         elif w <= 25:
+            val = 2
+         elif w <= 30:
+            val = 1
+         else:
+            val = 0
+         sum += val
+      wscore = sum/2
+      
+      regscore = (rbscore + 2*dscore)/3
+      locscore = (lbscore + 2*wscore)/3
+      comboscore = (regscore + locscore)/2
+      
+      if PopSum == 0:
+         return None
+      elif PopSum < 500:
+         return int(regscore)
+      else:
+         return int(comboscore)
+      '''
+   expression = "calcTerrScore(!PopSum!, !rPrk_bStat!, !rPrk_mStat!, !rTrl_bStat!, !rTrl_mStat!, !lPrk_bStat!, !lPrk_mStat!, !lTrl_bStat!, !lTrl_mStat!, !rPrk_ttAvg!, !rTrl_ttAvg!, !lPrk_ttAvg!, !lTrl_ttAvg!)"
+   arcpy.CalculateField_management (inTab, "terrScore_bmt", expression, "PYTHON", codeblock)
+
+def terrScore_bmin(inTab):
+   '''Calculates summary terrestrial score, version BMIN. Note that scores are rounded down when integerized. Assumes very specific data structure with specific field names; will fail if not correct.'''
+   
+   # Version BMIN = same as original score version, but using minimum instead of average of sub-scores
+   codeblock = '''def calcTerrScore(PopSum, rb1, rb2, lb1, lb2, d1, d2, w1, w2):
+      m = 5
+      for b in [rb1, rb2]:
+         val = 5 - b
+         m = min(m, val)
+      rbscore = m
+      
+      m = 5
+      for b in [lb1, lb2]:
+         val = 5 - b
+         m = min(m, val)
+      lbscore = m
+      
+      m = 5
+      for d in [d1, d2]:
+         if d <= 30:
+            val = 5
+         elif d <= 45:
+            val = 4
+         elif d <= 60:
+            val = 3
+         elif d <= 75:
+            val = 2
+         elif d <= 90:
+            val = 1
+         else:
+            val = 0
+         m = min(m, val)
+      dscore = m
+      
+      m = 5
+      for w in [w1, w2]:
+         if w <= 10:
+            val = 5
+         elif w <= 15:
+            val = 4
+         elif w <= 20:
+            val = 3
+         elif w <= 25:
+            val = 2
+         elif w <= 30:
+            val = 1
+         else:
+            val = 0
+         m = min(m, val)
+      wscore = m
+      
+      regscore = min(rbscore, dscore)
+      locscore = min(lbscore, wscore)
+      comboscore = min(regscore, locscore)
+      
+      if PopSum == 0:
+         return None
+      elif PopSum < 500:
+         return int(regscore)
+      else:
+         return int(comboscore)
+      '''
+   expression = "calcTerrScore(!PopSum!, !rPrk_bStat!, !rTrl_bStat!, !lPrk_bStat!, !lTrl_bStat!, !rPrk_ttAvg!, !rTrl_ttAvg!, !lPrk_ttAvg!, !lTrl_ttAvg!)"
+   arcpy.CalculateField_management (inTab, "terrScore_bmin", expression, "PYTHON", codeblock)
+
+def terrScore_mmin(inTab):
+   '''Calculates summary terrestrial score, version MMIN. Note that scores are rounded down when integerized. Assumes very specific data structure with specific field names; will fail if not correct.'''
+   
+   # Version MMIN = same as original score version, but using minimum instead of average of sub-scores, and maximum instead of baseline benchmarks
+   codeblock = '''def calcTerrScore(PopSum, rb1, rb2, lb1, lb2, d1, d2, w1, w2):
+      m = 5
+      for b in [rb1, rb2]:
+         val = 5 - b
+         m = min(m, val)
+      rbscore = m
+      
+      m = 5
+      for b in [lb1, lb2]:
+         val = 5 - b
+         m = min(m, val)
+      lbscore = m
+      
+      m = 5
+      for d in [d1, d2]:
+         if d <= 30:
+            val = 5
+         elif d <= 45:
+            val = 4
+         elif d <= 60:
+            val = 3
+         elif d <= 75:
+            val = 2
+         elif d <= 90:
+            val = 1
+         else:
+            val = 0
+         m = min(m, val)
+      dscore = m
+      
+      m = 5
+      for w in [w1, w2]:
+         if w <= 10:
+            val = 5
+         elif w <= 15:
+            val = 4
+         elif w <= 20:
+            val = 3
+         elif w <= 25:
+            val = 2
+         elif w <= 30:
+            val = 1
+         else:
+            val = 0
+         m = min(m, val)
+      wscore = m
+      
+      regscore = min(rbscore, dscore)
+      locscore = min(lbscore, wscore)
+      comboscore = min(regscore, locscore)
+      
+      if PopSum == 0:
+         return None
+      elif PopSum < 500:
+         return int(regscore)
+      else:
+         return int(comboscore)
+      '''
+   expression = "calcTerrScore(!PopSum!, !rPrk_mStat!, !rTrl_mStat!, !lPrk_mStat!, !lTrl_mStat!, !rPrk_ttAvg!, !rTrl_ttAvg!, !lPrk_ttAvg!, !lTrl_ttAvg!)"
+   arcpy.CalculateField_management (inTab, "terrScore_mmin", expression, "PYTHON", codeblock)
+
+
 def main():
    inTab = r'F:\Working\RecMod\Outputs\VA_RecMod_CONUS\VA_RecMod.gdb\RecreationAccess'
    targetTab = r'F:\Working\RecMod\Outputs\VA_RecMod_CONUS\VA_RecMod.gdb\RecreationAccess_Final'
