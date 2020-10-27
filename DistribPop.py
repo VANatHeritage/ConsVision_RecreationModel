@@ -6,10 +6,14 @@
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
-# Distributes population from census blocks or block groups to pixels assumed to be actually occupied, based on land cover or road density. Yields a raster representing persons per pixel.
+# Distributes population from census blocks or block groups to pixels assumed to be actually occupied, based on land
+# cover or road density. Yields a raster representing persons per pixel.
 #
 # Usage:
-# IMPORTANT NOTE: If blocks or other census units are clipped to a processing boundary, the population for the remaining polygon fragments MUST be adjusted prior to running a population distribution function. Example: If clipping results in 40% of a polygon's area remaining, the population value should be adjusted to 40% of the original value.
+# IMPORTANT NOTE: If blocks or other census units are clipped to a processing boundary, the population for the
+# remaining polygon fragments MUST be adjusted prior to running a population distribution function. Example:
+# If clipping results in 40% of a polygon's area remaining, the population value should be adjusted to 40% of
+# the original value.
 #--------------------------------------------------------------------------------------
 # Import Helper module and functions
 import Helper
@@ -102,47 +106,55 @@ def DistribPop_nlcd(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop
    printMsg('Finished.')
    return outPop
    
-def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir):
+def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir, popMask=None):
    '''Distributes population from census blocks or other unit to pixels based on road density, yielding a raster representing persons per pixel.
    inBlocks = input shapefile delineating census blocks, block groups, or other census unit.
    fldPop = field within inBlocks designating the population for each block 
    inRoadDens = raster representing road density
    outPop = output raster representing population per pixel
-   tmpDir = directory to store intermediate files'''
+   tmpDir = directory to store intermediate files
+   popMask = optional raster mask defining where population can be distributed
+   '''
    
    # Apply environment settings
    arcpy.env.snapRaster = inRoadDens
    arcpy.env.cellSize = inRoadDens
    arcpy.env.extent = inRoadDens
-   arcpy.env.mask = inRoadDens
    arcpy.env.outputCoordinateSystem = inRoadDens
+   if popMask:
+      # This becomes processing mask. Note that env.mask does not apply to PolygonToRaster, but will apply to all
+      # other raster operations.
+      arcpy.env.mask = popMask
+   else:
+      arcpy.env.mask = inRoadDens
    
    # Re-project census blocks to match road density raster
    printMsg('Re-projecting census blocks...')
    Blocks_prj = ProjectToMatch (inBlocks, inRoadDens)
+   fld_id = [a.name for a in arcpy.ListFields(Blocks_prj) if a.type == 'OID'][0]
    
    # Apply more environment settings
-   arcpy.env.mask = Blocks_prj
-   arcpy.env.extent = Blocks_prj
+   # arcpy.env.mask = Blocks_prj
+   # arcpy.env.extent = Blocks_prj
    
    # Convert census blocks to raster zones
    blockZones = tmpDir + os.sep + "blockZones.tif"
    printMsg('Converting census blocks to raster zones...')
    arcpy.PolygonToRaster_conversion(in_features = Blocks_prj, 
-                                    value_field = "FID", 
-                                    out_rasterdataset = blockZones, 
+                                    value_field = fld_id, 
+                                    out_rasterdataset = blockZones,
                                     cell_assignment = "MAXIMUM_AREA", 
                                     priority_field = "NONE", 
                                     cellsize = inRoadDens)
-   
+
    # Get the sum of road density values by zone
-   blockSumDens = tmpDir + os.sep + "blockSumDens"
+   blockSumDens = tmpDir + os.sep + "blockSumDens.tif"
    printMsg('Summing road density values within zones...')
    tmpRast = ZonalStatistics(blockZones, "Value", inRoadDens, "SUM", "DATA")
    tmpRast.save(blockSumDens)
    
    # Get the proportional road density per pixel
-   propDens = tmpDir + os.sep + "propDens"
+   propDens = tmpDir + os.sep + "propDens.tif"
    printMsg('Calculating proportional road density values...')
    tmpRast = Raster(inRoadDens)/Raster(blockSumDens)
    tmpRast.save(propDens)
@@ -166,24 +178,57 @@ def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir):
    # Set zeros to nulls
    arcpy.env.mask = inRoadDens
    printMsg('Setting zeros to null...')
-   tmpRast = SetNull(Raster(pixelPop) <= 0, pixelPop)
+   tmpRast = SetNull(pixelPop, pixelPop, "Value <= 0")
    tmpRast.save(outPop)
+   arcpy.BuildPyramids_management(outPop)
    
    printMsg('Finished.')
    return outPop
-   
+
+
+def makePopMask(feats, inRaster, outMask):
+   '''Makes a mask indicating where population CAN be allocated. All area within features given to `feats`
+   will be NoData in the final mask.
+
+   feats = List of feature classes indicating exclusion features
+   inRaster = template raster
+   outMask = output raster
+   '''
+
+   arcpy.env.outputCoordinateSystem = inRaster
+   arcpy.env.snapRaster = inRaster
+   arcpy.env.cellSize = inRaster
+   arcpy.env.extent = inRaster
+
+   printMsg("Merging datasets...")
+   arcpy.Merge_management(feats, 'popMask_feats')
+   arcpy.CalculateField_management('popMask_feats', 'rast', '1', field_type="SHORT")
+   arcpy.PolygonToRaster_conversion('popMask_feats', value_field='rast',
+                                    out_rasterdataset='popMask_rast0',
+                                    cellsize=inRaster)
+   printMsg("Creating raster mask...")
+   arcpy.sa.SetNull(arcpy.sa.IsNull('popMask_rast0'), 1, "Value = 0").save(outMask)
+
+   return outMask
 
 
 def main():
    # Set up variables
-   inBlocks = r'H:\Working\ACS_2016\ACS_2016_5yr_BG.shp'
-   fldPop = 'TotPop_clp'
-   inRoadDens = r'H:\Working\RecMod\RecModProducts.gdb\Roads_kdens_250'
-   outPop = r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
-   tmpDir = r'H:\Working\TMP'
+   arcpy.env.workspace = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb'
+   inBlocks = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\ACS_2014_2018_5yr_BG_Clip'  # r'H:\Working\ACS_2016\ACS_2016_5yr_BG.shp'
+   fldPop = 'total_pop_clip'  # 'TotPop_clp'
+   inRoadDens = r'L:\David\projects\RCL_processing\Tiger_2019\roads_proc.gdb\Roads_kdens_250_noZero'  # r'H:\Working\RecMod\RecModProducts.gdb\Roads_kdens_250'
+   outPop = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2019rd'  # r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
+   tmpDir = r'E:\projects\rec_model\rec_model_processing\_temp'  # r'H:\Working\TMP'
+
+   # Make population mask
+   mask_features = [r'E:\projects\rec_model\rec_model.gdb\CensusBlocks_noLand',
+                    r'E:\projects\rec_model\rec_datasets\rec_datasets_prep_clean\rec_datasets.gdb\prep_VA_PUBLIC_ACCESS_LANDS_20190201_diss2']
+   popMask = 'population_mask_raster'
+   makePopMask(mask_features, inRoadDens, popMask)
    
    # Specify function to run
-   DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir)
+   DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir, popMask)
 
 if __name__ == '__main__':
    main()
