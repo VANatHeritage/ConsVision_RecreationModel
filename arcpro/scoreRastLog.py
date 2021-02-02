@@ -22,8 +22,7 @@ burnSimple = False : features are burned in with a distance decay buffer
 
 """
 
-import Helper
-from Helper import *
+from arcpro.Helper import *
 from arcpy import env
 
 def scoreRastLog(inRast, outRast, mask, maxVal = None, burnFeatures = None, burnField = None, burnSimple = True):

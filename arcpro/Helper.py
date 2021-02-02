@@ -11,11 +11,15 @@ functions in this repository.
 """
 
 import arcpy
-arcpy.CheckOutExtension("Spatial")
-from arcpy.sa import *
 import os
+import sys
+import numpy
 import time
 import re
+arcpy.CheckOutExtension("Spatial")
+from arcpy.sa import *
+arcpy.env.overwriteOutput = True
+
 
 def unique_values(table, field):
    ''' Gets list of unique values in a field.
@@ -40,6 +44,7 @@ def make_gdb(path):
          print("Geodatabase '" + path + "' created.")
          return True
    else:
+      print("Geodatabase '" + path + "' already exists.")
       return True
 
 def make_gdb_name(string):
