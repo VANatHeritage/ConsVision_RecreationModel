@@ -1,5 +1,9 @@
-﻿--- TODO
----
+﻿/*
+List TODO here.
+
+DONE: 2020-10-19: updated with newly-generated dataset rec_access.pub_lands_final.
+
+*/
 
 /*
 Recreation access tables for recreation model.
@@ -20,7 +24,7 @@ Last update: 2018-08-20
 */
 
 -- Terrestrial rec access
-update rec_source.va_public_access set objectid = objectid_1; -- objectid is null for a couple records, this sets it to match primary key
+-- update rec_source.va_public_access set objectid = objectid_1; -- objectid is null for a couple records, this sets it to match primary key
 
 -- reset table if needed
 DELETE FROM rec_access.access_t;
@@ -29,14 +33,19 @@ ALTER SEQUENCE rec_access.access_t_acs_t_id_seq RESTART WITH 1;
 -- Public lands
 -- pub_lands_dissolve was set up with unique known public access polygons
 -- processinng moved to park_points.sql
--- table is pub_lands_final
+-- table is rec_access.pub_lands_final
 
 -- roads query view
-create or replace view roads.roads_sub as 
-select * from roads.tiger_2018 where
+drop table roads.roads_sub; 
+create table roads.roads_sub as 
+select distinct on (geom) objectid, uniqueid, st_centroid(geom) geom from roads.tiger_2018 where
 	mtfcc NOT IN ('S1710','S1720','S1740','S1750', -- excluded from analysis
-	'S1100','S1630'); -- these are limited access highways
+	'S1100','S1630') -- these are limited access highways / ramps
+ALTER TABLE roads.roads_sub ADD CONSTRAINT roads_sub_pkey PRIMARY KEY (objectid); 
+create index roads_sub_idx ON roads.roads_sub USING GIST (geom);
 
+vacuum analyze roads.roads_sub;
+vacuum analyze rec_access.pub_lands_final;
 
 -- EXTRA ATTRIBUTES FOR POLYGONS
 -- summarize trails (lines) in polygons - vatrails
@@ -44,7 +53,7 @@ select * from roads.tiger_2018 where
 drop table pub_lands_trls;
 CREATE TABLE pub_lands_trls AS
 	SELECT a.objectid, b.objectid oid_t, st_intersection(b.geom, a.geom) geom -- could use st_buffer(50m) around polygons to account for trails along polygon buffers
-	FROM pub_lands_final a,
+	FROM rec_access.pub_lands_final a,
 	rec_source.vatrails b
 	WHERE st_intersects(a.geom, b.geom); -- could use st_buffer around polygons to account for trails along polygon buffers
 COMMENT ON TABLE pub_lands_trls is 'Trails intersecting pub_lands_final polygon from the trails table ''rec_source.vatrails''';
@@ -52,7 +61,7 @@ COMMENT ON TABLE pub_lands_trls is 'Trails intersecting pub_lands_final polygon 
 drop table pub_lands_strl;
 CREATE TABLE pub_lands_strl AS
 	SELECT a.objectid, b.ogc_fid oid_t, st_intersection(st_transform(b.geom, 3968), a.geom) geom
-	FROM pub_lands_final a,
+	FROM rec_access.pub_lands_final a,
 	rec_source.state_trails b
 	WHERE b.type = 'Trail' AND st_intersects(a.geom, st_transform(b.geom, 3968)); -- only (foot) trails, not the on-road trails included in this table
 COMMENT ON TABLE pub_lands_trls is 'Trails intersecting pub_lands_final polygon from the trails table ''rec_source.state_trails''';
@@ -68,7 +77,7 @@ SELECT t.*, round(st_area(p.geom)::numeric/4046.856,8) as plt_area FROM
 	FROM pub_lands_strl group by plt_fid) b
 	using (plt_fid)) t
 	JOIN
-	pub_lands_final p on (p.objectid = t.plt_fid);
+	rec_access.pub_lands_final p on (p.objectid = t.plt_fid);
 COMMENT ON VIEW pub_lands_alltrls is 'Summary of total length of trails within pub_lands_final polygon from the trail lines tables.';
 -- area and length summary
 select plt_fid, plt_area, trls_leng_miles, strl_leng_miles from pub_lands_alltrls order by trls_leng_miles desc;
@@ -96,13 +105,13 @@ select objectid, t_tlnd, 'wma_points', geom from rec_source.wma_points where t_t
 INSERT INTO rec_access.access_t (facil_code, facil_rid, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom) 
 	SELECT 'tlnd', a.rid, a.src_table, a.objectid, 'pub_lands_final', b.objectid, 
 		round(st_area(b.geom)::numeric/4046.856,8), 1, 'intersects pub_lands_final', a.geom
-	FROM t_tlnd a, pub_lands_final b
+	FROM t_tlnd a, rec_access.pub_lands_final b
 	WHERE st_intersects(a.geom, b.geom)
 	and st_area(b.geom) > 20234.3; -- 5 acres
 -- within a distance of pub_lands (50m) -> associate with closest
 INSERT INTO rec_access.access_t (facil_code, facil_rid, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom) 
 	SELECT distinct on (a.rid) 'tlnd', a.rid, a.src_table, a.objectid, 'pub_lands_final', b.objectid, round(st_area(b.geom)::numeric/4046.856,8), 1, 'within 50m pub_lands_final', a.geom
-	FROM t_tlnd a, pub_lands_final b
+	FROM t_tlnd a, rec_access.pub_lands_final b
 	WHERE st_dwithin(a.geom, b.geom, 50)
 	and st_area(b.geom) > 20234.3
 	AND a.rid NOT IN (SELECT distinct facil_rid FROM rec_access.access_t where facil_code = 'tlnd')
@@ -110,7 +119,7 @@ INSERT INTO rec_access.access_t (facil_code, facil_rid, src_table, src_id, join_
 -- within a distance of pub_lands (402.25) -> associate with closest
 INSERT INTO rec_access.access_t (facil_code, facil_rid, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom) 
 	SELECT distinct on (a.rid) 'tlnd', a.rid, a.src_table, a.objectid, 'pub_lands_final', b.objectid, round(st_area(b.geom)::numeric/4046.856,8), 1, 'within 50m-quarter mile of pub_lands_final', a.geom
-	FROM t_tlnd a, pub_lands_final b
+	FROM t_tlnd a, rec_access.pub_lands_final b
 	WHERE st_dwithin(a.geom, b.geom, 402.25)
 	and st_area(b.geom) > 20234.3
 	AND a.rid NOT IN (SELECT distinct facil_rid FROM rec_access.access_t where facil_code = 'tlnd')
@@ -122,8 +131,7 @@ INSERT INTO rec_access.access_t (facil_code, facil_rid, src_table, src_id, join_
 -- these are associated
 create or replace view plnd_assoc as 
 select distinct join_fid from rec_access.access_t where facil_code = 'tlnd' and join_table = 'pub_lands_final' and join_fid is not null and use != 0
-union all
-select distinct src_id from rec_access.access_t where facil_code = 'tlnd' and src_table = 'pub_lands_final' and use != 0;
+	union all select distinct src_id from rec_access.access_t where facil_code = 'tlnd' and src_table = 'pub_lands_final' and use != 0;
 
 delete from rec_access.access_t where src_table = 'pub_lands_final' and join_table = 'pub_lands_final';
 -- These are polygons intersecting roads
@@ -131,28 +139,57 @@ delete from rec_access.access_t where src_table = 'pub_lands_final' and join_tab
 INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom) 
 SELECT DISTINCT ON (a.objectid) 'tlnd', 'pub_lands_final', a.objectid, 'pub_lands_final', a.objectid, round(st_area(a.geom)::numeric/4046.856,8),
 			2, 'closest point on intersecting roads to polygon centroid', st_closestpoint((st_dump(st_intersection(b.geom, a.geom))).geom, st_centroid(a.geom)) FROM
-		pub_lands_final a,
+		rec_access.pub_lands_final a,
 		roads.roads_sub b
 		where st_intersects(a.geom, b.geom)
 		and st_area(a.geom) > 20234.3 -- 5 acres
 		and a.objectid NOT IN (select join_fid from plnd_assoc);
-		
--- non-road intersecting polygons (RUN THIS WITH ADJUSTED DWITHIN DISTANCES UNTIL NOTHING NEW ADDED)
+
+select count(*), max(st_area(geom)) from rec_access.pub_lands_final where st_area(geom) > 20234.3 and objectid not in (select join_fid from plnd_assoc);
+
+-- WORKING HERE 2020-10-15. non-road intersecting polygons. Not working, too slow. 
+-- RUN THIS WITH ADJUSTED DWITHIN DISTANCES UNTIL NOTHING NEW ADDED. Start with small distance (1m).
 INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom)
-SELECT DISTINCT ON (a.objectid) 'tlnd', 'pub_lands_final', a.objectid, 'pub_lands_final', a.objectid, round(st_area(a.geom)::numeric/4046.856,8),
+SELECT DISTINCT ON (a.objectid) 'tlnd', 'pub_lands_final', a.objectid, 'pub_lands_final', a.objectid, round(st_area(a.geom)::numeric/4046.856,4),
 			2, 'closest point on polygon boundary to road', st_closestpoint(a.geom, b.geom) geom FROM
-		pub_lands_final a,
+		rec_access.pub_lands_final a,
 		roads.roads_sub b
-		where st_dwithin(a.geom, b.geom, 15000) -- manually adjust here with increasingly higher values to speed up/provide cutoff for polys > a distance to closest road
-		and st_area(a.geom) > 20234.3 -- 5 acres
-		and a.objectid NOT IN (select join_fid from plnd_assoc)
-		ORDER BY a.objectid, ST_Distance(a.geom,b.geom) asc;
+		where a.objectid NOT IN (select join_fid from plnd_assoc)
+		and st_area(a.geom) > 20234.3
+		and st_dwithin(b.geom, a.geom, 100) -- note this is what increase in subsequent 2 queries. Much faster to run multiple times like this.
+		ORDER BY a.objectid, ST_Distance(a.geom, b.geom) asc;
+INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom)
+SELECT DISTINCT ON (a.objectid) 'tlnd', 'pub_lands_final', a.objectid, 'pub_lands_final', a.objectid, round(st_area(a.geom)::numeric/4046.856,4),
+			2, 'closest point on polygon boundary to road', st_closestpoint(a.geom, b.geom) geom FROM
+		rec_access.pub_lands_final a,
+		roads.roads_sub b
+		where a.objectid NOT IN (select join_fid from plnd_assoc)
+		and st_area(a.geom) > 20234.3
+		and st_dwithin(b.geom, a.geom, 1000)
+		ORDER BY a.objectid, ST_Distance(a.geom, b.geom) asc;
+INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom)
+SELECT DISTINCT ON (a.objectid) 'tlnd', 'pub_lands_final', a.objectid, 'pub_lands_final', a.objectid, round(st_area(a.geom)::numeric/4046.856,4),
+			2, 'closest point on polygon boundary to road', st_closestpoint(a.geom, b.geom) geom FROM
+		rec_access.pub_lands_final a,
+		roads.roads_sub b
+		where a.objectid NOT IN (select join_fid from plnd_assoc)
+		and st_area(a.geom) > 20234.3
+		and st_dwithin(b.geom, a.geom, 20000) 
+		ORDER BY a.objectid, ST_Distance(a.geom, b.geom) asc;
+		
+
 -- check	
-select objectid, st_area(geom) from pub_lands_final where objectid not in (select * from plnd_assoc order by join_fid) order by st_area(geom) desc;
+select objectid, st_area(geom) from rec_access.pub_lands_final where objectid not in (select * from plnd_assoc order by join_fid) order by st_area(geom) desc;
 -- should be just small polys (<5 acres area) excluded
 drop view plnd_assoc;
 -- all polygons have a point now
 select join_fid, count(*) from rec_access.access_t where join_score < 5 group by join_fid order by count(*) desc;
+
+-- update names
+update rec_access.access_t a set join_name = s.nm from
+(select join_fid, b.objectid, case when pub_lands_dissolve_name is not null then pub_lands_dissolve_name else local_parks_areas_name end as nm
+from rec_access.access_t a, rec_access.pub_lands_final b where a.join_fid = b.objectid) s
+where join_table = 'pub_lands_final' and a.join_fid = s.objectid;
 
 
 -- Terrestrial Trails
@@ -217,7 +254,16 @@ SELECT DISTINCT ON (a.rid) 'ttrl', 'trails_clean_network', a.rid,'trails_clean_n
 			2, 'closest point on trail boundary to road', st_closestpoint(a.geom, b.geom) geom FROM
 		trails_clean_network a,
 		roads.roads_sub b
-		where st_dwithin(a.geom, b.geom, 10000) -- manually adjust here with increasingly higher values to speed up/provide cutoff for trails > a distance to closest road
+		where st_dwithin(a.geom, b.geom, 100) -- manually adjust here with increasingly higher values to speed up/provide cutoff for trails > a distance to closest road
+		and a.rid NOT IN (select distinct join_fid from rec_access.access_t where facil_code = 'ttrl' and join_table = 'trails_clean_network')
+		and a.leng_miles > 1
+		ORDER BY a.rid, ST_Distance(a.geom,b.geom) asc;
+INSERT INTO rec_access.access_t (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom)
+SELECT DISTINCT ON (a.rid) 'ttrl', 'trails_clean_network', a.rid,'trails_clean_network', a.rid, a.leng_miles,
+			2, 'closest point on trail boundary to road', st_closestpoint(a.geom, b.geom) geom FROM
+		trails_clean_network a,
+		roads.roads_sub b
+		where st_dwithin(a.geom, b.geom, 20000)
 		and a.rid NOT IN (select distinct join_fid from rec_access.access_t where facil_code = 'ttrl' and join_table = 'trails_clean_network')
 		and a.leng_miles > 1
 		ORDER BY a.rid, ST_Distance(a.geom,b.geom) asc;
@@ -240,7 +286,7 @@ select *, area_acres/ct_acc as acres_per_acc from
 rec_access.access_t
 group by join_fid) a
 join
-(select objectid, st_area(geom)/4046.856 area_acres from pub_lands_final) b 
+(select objectid, st_area(geom)/4046.856 area_acres from rec_access.pub_lands_final) b 
 on (a.join_fid = b.objectid)
 order by acres_per_acc desc;
 
@@ -265,9 +311,10 @@ UPDATE rec_access.access_t a SET road_dist =
 	(SELECT dist from
 	(SELECT distinct on (acs_t_id) acs_t_id, st_distance(a.geom, b.geom)::numeric(7,2) dist FROM
 	rec_access.access_t a,
-	roads.tiger_2018 b
-	where st_dwithin(a.geom, b.geom, 20000) -- run progressively at 100, 1000, 10000, 20000
-	and b.mtfcc NOT IN ('S9999','S1710','S1720','S1740','S1820','S1830','S1500')
+	--roads.tiger_2018 b
+	roads.roads_sub b
+	where st_dwithin(a.geom, b.geom, 100) -- run progressively at 100, 1000, 10000, 20000
+	--and b.mtfcc NOT IN ('S9999','S1710','S1720','S1740','S1820','S1830','S1500')
 	order by acs_t_id, st_distance(a.geom, b.geom) asc) b
 where a.acs_t_id = b.acs_t_id)
 where a.road_dist is null;
@@ -516,7 +563,7 @@ delete from rec_access.access_a where join_table = 'stocked_trout_reaches_diss' 
 select distinct a.fid from rec_source.stocked_trout_reaches_diss a
 where a.fid not in (select distinct join_fid from rec_access.access_a where join_table = 'stocked_trout_reaches_diss');
 
--- one point per unasssociated lake
+-- one point per unasssociated reach
 INSERT INTO rec_access.access_a (facil_code, src_table, src_id, join_table, join_fid, join_score, use, use_why, geom)
 SELECT DISTINCT ON (a.fid) 'afsh', 'stocked_trout_reaches_diss', a.fid,  'stocked_trout_reaches_diss', a.fid, 1, 2, 
 			'closest point to reach centroid from intersection of reach with roads', 
@@ -771,8 +818,20 @@ select facil_code, group_id, count(*) from
 ) a
 group by facil_code, group_id having count(*) > 1;
 
+-- NOW Export tables to ArcGIS geodatabase (where use <> 0).
 
--- SUMMARIES
+
+/*
+-- EVERYTHING BELOW ARE SUMMARIES: No changes made to data in these sections
+
+-- used in table 2 of report
+select facil_code, count(*), count(distinct join_fid) as grps from rec_access.access_t
+where use != 0
+group by facil_code;
+select facil_code, count(*), count(distinct group_id) as grps from rec_access.access_a
+where use != 0
+group by facil_code;
+--
 
 select src_table, facil_code, use, count(*) from rec_access.access_a
 where use != 0

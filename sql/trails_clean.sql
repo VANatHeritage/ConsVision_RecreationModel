@@ -1,4 +1,9 @@
 ﻿-- 1. Trail cleaning
+/* TODO
+list todo here
+
+*/
+
 -- Starts from original trails dataset with all attributes from ArcGIS [vatrails_orig in database]
  
 -- remove all exact dups
@@ -13,7 +18,7 @@ where st_equals(a.geom, b.geom)
 group by a.objectid
 order by count(b.objectid) desc)
 select * from rec_source.vatrails_orig where objectid in (select min_group from groupids where objectid = min_group);
---
+
 create index trails_clean_multi_idx on trails_clean_multi using gist (geom);
 update trails_clean_multi set shape_length = st_length(geom);
 
@@ -52,6 +57,7 @@ select distinct QC from trails_clean;
 -- D = excluded as manaully identified as duplicate
 -- C = excluded because marked as closed in original dataset
 -- I = include (default normal trails with no reason to exclude).
+
 alter table trails_clean add column exclude character(1);
 update trails_clean set exclude = NULL;
 update trails_clean set exclude = 'W' where watertrail = 1;
@@ -138,9 +144,10 @@ limit 10;
 drop table trails_clean_network;
 create table trails_clean_network as 
 	select row_number() over ()::int as rid, round(st_length(a.geom)::numeric/1609.344,8) as leng_miles, a.geom as geom from 
-	(select st_setsrid(st_collectionextract(unnest(ST_ClusterWithin(geom, 402.25)),2),5070) as geom from trails_include 
-	where st_length(geom) > 0) a -- HOW LONG SHOULD A SEGMENT BE TO BE IN A CLUSTSER?
-	where st_length(a.geom)/1609.344 >= 1; -- HOW LONG SHOULD A CLUSTER BE TO BE INCLUDED?
+	(select st_setsrid(st_collectionextract(unnest(ST_ClusterWithin(geom, 402.25)),2),5070) -- AT WHAT DISTANCE APART SHOULD TRAIL SEGMENTS BE CONSIDERED CLUSTERED?
+		as geom from trails_include 
+	where st_length(geom) > 0) a -- HOW LONG SHOULD A TRAIL SEGMENT BE TO BE INCLUDED IN A CLUSTSER?
+	where st_length(a.geom)/1609.344 >= 1; -- HOW LONG SHOULD A TRAIL CLUSTER BE TO BE INCLUDED IN THE TABLE?
 CREATE INDEX trails_clean_network_idx ON trails_clean_network USING gist (geom);
 -- insert into lookup.src_table (table_name) values ('trails_clean_network');
 
@@ -171,7 +178,8 @@ group by round(leng_miles, 1)
 order by round(leng_miles, 1) desc;
 -- total miles
 select sum(st_length(geom))::numeric*0.000621371 from trails_clean_network;
--- 805m
+
+-- 805m: NOT USING
 select count(*), round(leng_miles, 1) from trails_clean_network_halfmile
 group by round(leng_miles, 1)
 order by round(leng_miles, 1) desc;

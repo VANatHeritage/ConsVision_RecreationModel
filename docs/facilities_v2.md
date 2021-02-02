@@ -22,19 +22,20 @@ This document describes the workflow used to create access point datasets to rec
 
 #### Recreation Input datasets
 
-From DCR (PRR and DNH), datasets for Virginia Outdoors Plan (VOP) Mapper:
+From DCR (PRR and DNH), and datasets for Virginia Outdoors Plan (VOP) Mapper:
 
 - VA_PUBLIC_ACCESS_LANDS (Polygon)
   - Represents all public lands in Virginia, with a 'ACCESS' column specifying level of access generally; 'PUBACCESS' has a bit more specifics
 - 2018 Public Access (Point)
   - public-access recreation sites and amenities. Includes attributes which indicate specific types of activities available.
-
 - VATrails_2017 (Line)
 - VATrailheads_2017 (Point)
 - Local_Park_Inventory_2018
   - This point dataset has attributes on facilities at local (municipalities) parks. Not always spatially precise on location of the facilities, but it has a lot of useful attributes
 - Watertrails2017 
   - sent by Robbie Rhur (DCR PRR) 2/2019, and was updated for that date
+- boataccess_WGS
+  - boat access points from VOP mapper
 
 From Virginia Dept. of Game and Inland Fisheries (VDGIF):
 
@@ -55,7 +56,7 @@ From U.S. Census Tiger/Line:
 
 - Tiger_2018.gdb (Line)
 
-> Note: the following road types were excluded from all analyses:
+> Note: the following road types were excluded from all regional analyses:
 >
 > mtfcc IN ('S1710','S1720','S1740','S1750')
 >
@@ -102,12 +103,12 @@ Point datasets:
    - a_afsh: ` TYPE = Fishing Pier`
    - t_ttrl and t_tlnd: `TYPE IN ('Gate', 'Seasonal Gate', 'Parking')`
 2. 2018_Public_Access
-   - a_awct:`BOAT_RAMP = 'Y' or Launch > 0`
+   - a_awct: `BOAT_RAMP = 'Y' or Launch > 0`
    - a_afsh: `FISHING = 'Y'`
    - a_aswm: `SWIMMING = 'Y'`
    - a_agen: all points that were not associated with another aquatic sub-type
    - t_ttrl: all points
-   - tlnd: all points
+   - t_tlnd: all points
 3. VDGIF_Maintained_Boating_Access_Locations
    - a_awct: all points
 4. boataccess_WGS
@@ -115,14 +116,14 @@ Point datasets:
 5. Local_Park_Inventory_2018
    - a_awct: `WATER_ACCESS in ('CANOE SLIDE','BOAT RAMP', 'ALL')`
    - a_afsh: `WATER_ACCESS in ('PIER', 'ALL')`
-   - a_afsh: `SWIMMING_AREA = 'BEACH'`
+   - a_aswm: `SWIMMING_AREA = 'BEACH'`
      - note: there is also a POOL category
    - t_ttrl: `TRAIL_TYPE IN ('BIKE', 'FITNESS', 'HIKING', 'HORSE', 'MULTI-USE')`
    - tlnd: *Special Workflow*:
      - These points were divided into **associated** or **unassociated** with public lands polygons
      - associated points met one or more of the criteria:
-       - wtihin 100m of a public land polygon
-       - [within 2000m AND name matches polygon name AND sizes are within 10 acres of one another]
+       - within 100m of a public land polygon
+       - [within 2000m AND name partial-matches polygon name AND sizes are within 10 acres of one another]
      - unassociated points were assigned an area using `park_acres`
        - empty or 0-areas were assigned a default 0.25-acre value
        - generated circle (buffer) polygons around these points, according to area assigned to the point
@@ -166,7 +167,8 @@ Polygon and line feature were considered **Recreational Features**. Several recr
 - *vatrails*
   - In ArcMap:
     - ArcMap Identity was used to attribute areas `on_road`.
-      - this query selects those road surfaces that *can* cut trails:`(mtfcc in ('S1100', 'S1200', 'S1630')) or (mtfcc not in ('S1500', 'S1710', 'S1720', 'S1820', 'S1830') AND LOCAL_SPEED_MPH > 15)`
+      - this query selects those road surfaces that *can* cut out trails:
+        - `(mtfcc in ('S1100', 'S1200', 'S1630')) or (mtfcc not in ('S1500', 'S1710', 'S1720', 'S1820', 'S1830') AND LOCAL_SPEED_MPH > 15)`
         - Note: Road surfaces used a Virginia RCL dataset (2017Q3), instead of Tiger for this procedure, since more detailed attributes were available for Virginia RCL.
       - Note: manually reset some Great Dismal Swamp NWR trails to on_road = 0 after consulting [FWS map](https://www.fws.gov/uploadedFiles/GreatDismalSwampTrails%204-16.pdf)
     - ArcMap Identity was used to attribute areas `on_nhdwater`.  In review, trails that were identified as potential water trails were marked `waterTrail = 1`.
@@ -180,7 +182,7 @@ Polygon and line feature were considered **Recreational Features**. Several recr
     - Used Integrate tool with a tolerance of 1-meter to clean up trails.
       - This doesn't remove duplicates, but puts them directly on top of one another. Allows to retain attributes of individual lines.
   - In Postgres:
-    - removed exact duplicates and dumped to single-part linestrings in **trails_clean**
+    - removed exact spatial duplicates and dumped to single-part linestrings in **trails_clean**
     - added field `exclude` with values:
       - W = excluded b/c in water
       - R = excluded b/c in road
@@ -302,7 +304,7 @@ This section describes any steps used to prepare the access points for service a
 
 #### Export to ArcGIS geodatabase
 
-Points were to feature classes (one for each `facil_code`) for service area analysis in ArcGIS, where `use <> 0`. Files are timestamped with the date of export.
+Points were to feature classes (one for each `facil_code`) for service area analysis in ArcGIS, where `use <> 0`. Files are time-stamped with the date of export.
 
  
 

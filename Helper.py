@@ -9,7 +9,7 @@
 # Imports standard modules, applies standard settings, and defines a collection of helper functions to be called by other scripts.
 
 # Import modules
-print 'Importing modules, including arcpy, which takes way longer than it should...'
+print('Importing modules, including arcpy, which takes way longer than it should...')
 import arcpy, os, sys, traceback
 from datetime import datetime as datetime
 from arcpy.sa import *
@@ -41,17 +41,17 @@ def GetElapsedTime (t1, t2):
 
 def printMsg(msg):
    arcpy.AddMessage(msg)
-   print msg
+   print(msg)
    return
    
 def printWrng(msg):
    arcpy.AddWarning(msg)
-   print 'Warning: ' + msg
+   print('Warning: ' + msg)
    return
    
 def printErr(msg):
    arcpy.AddError(msg)
-   print 'Error: ' + msg
+   print('Error: ' + msg)
    return
    
 def ProjectToMatch (fcTarget, csTemplate):
@@ -129,13 +129,15 @@ def JoinFields(ToTab, fldToJoin, FromTab, fldFromJoin, addFields):
       printMsg('"%s" field done.' %fld)
    return ToTab
    
-def SpatialCluster (inFeats, fldID, searchDist, fldGrpID = 'grpID'):
+def SpatialCluster (inFeats, searchDist, fldGrpID = 'grpID'):
    '''Clusters features based on specified search distance. Features within twice the search distance of each other will be assigned to the same group.
    inFeats = The input features to group
-   fldID = The field containing unique feature IDs in inFeats
    searchDist = The search distance to use for clustering. This should be half of the max distance allowed to include features in the same cluster. E.g., if you want features within 500 m of each other to cluster, enter "250 METERS"
    fldGrpID = The desired name for the output grouping field. If not specified, it will be "grpID".'''
-   
+
+   # Get the name of the OID field
+   fldID = [a.name for a in arcpy.ListFields(inFeats) if a.type == 'OID'][0]
+
    # Initialize trash items list
    trashList = []
    
@@ -148,7 +150,7 @@ def SpatialCluster (inFeats, fldID, searchDist, fldGrpID = 'grpID'):
    # Buffer input features
    printMsg('Buffering input features')
    outBuff = scratchGDB + os.sep + 'outBuff'
-   arcpy.Buffer_analysis (inFeats, outBuff, searchDist, '', '', 'ALL')
+   arcpy.Buffer_analysis (inFeats, outBuff, searchDist, dissolve_option='ALL')
    trashList.append(outBuff)
    
    # Explode multipart  buffers
@@ -253,18 +255,30 @@ def CleanClip(inFeats, clipFeats, outFeats, scratchGDB = "in_memory"):
       garbagePickup([tmpClip])
    
    return outFeats
+
+
+def calcFld(inTab, fldName, expression, code_block=None, field_type="TEXT"):
+   '''Wrapper for CalculateField, which also adds the field. Will delete existing column to ensure
+   field_type. Can be swapped with base fn after ArcGIS Pro version 2.5+'''
+   if fldName in [a.name for a in arcpy.ListFields(inTab)]:
+      arcpy.DeleteField_management(inTab, fldName)
+   arcpy.AddField_management(inTab, fldName, field_type)
+   arcpy.CalculateField_management(inTab, fldName, expression, expression_type="PYTHON", code_block=code_block)
+   return inTab
+
+
 ##################################################################################################################
 # Use the main function below to run a function directly from Python IDE or command line with hard-coded variables
 
 def main():
    # Set up variables
    inFeats = r'E:\ConsVision_RecMod\Terrestrial\Input\TerrestrialFacilities.shp'
-   fldID =  'FID'
+   # fldID =  'FID'
    searchDist = '250 METERS'
    fldGrpID = 'grpID_500m'
    
    # Specify function to run
-   SpatialCluster (inFeats, fldID, searchDist, fldGrpID)
+   SpatialCluster (inFeats, searchDist, fldGrpID)
 
 if __name__ == '__main__':
    main()

@@ -16,9 +16,9 @@
 # the original value.
 #--------------------------------------------------------------------------------------
 # Import Helper module and functions
-import Helper
 from Helper import *
 from arcpy import env
+
 
 def DistribPop_nlcd(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmpDir):
    '''Distributes population from census blocks to developed pixels based on NLCD land cover, yielding a raster representing persons per pixel.
@@ -105,7 +105,8 @@ def DistribPop_nlcd(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop
    
    printMsg('Finished.')
    return outPop
-   
+
+
 def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir, popMask=None):
    '''Distributes population from census blocks or other unit to pixels based on road density, yielding a raster representing persons per pixel.
    inBlocks = input shapefile delineating census blocks, block groups, or other census unit.
@@ -113,7 +114,7 @@ def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir, popMask=No
    inRoadDens = raster representing road density
    outPop = output raster representing population per pixel
    tmpDir = directory to store intermediate files
-   popMask = optional raster mask defining where population can be distributed
+   popMask = optional raster mask, NoData areas will not have population allocated
    '''
    
    # Apply environment settings
@@ -186,9 +187,10 @@ def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir, popMask=No
    return outPop
 
 
-def makePopMask(feats, inRaster, outMask):
-   '''Makes a mask indicating where population CAN be allocated. All area within features given to `feats`
-   will be NoData in the final mask.
+def makePopMask(feats, inMask, inRaster, outMask):
+   '''Makes a raster mask indicating where population CAN be allocated, from input features indicating where NOT
+   to allocate population (e.g. water, parks). All area covered by features given to `feats` will become NoData
+   in the final mask.
 
    feats = List of feature classes indicating exclusion features
    inRaster = template raster
@@ -199,15 +201,18 @@ def makePopMask(feats, inRaster, outMask):
    arcpy.env.snapRaster = inRaster
    arcpy.env.cellSize = inRaster
    arcpy.env.extent = inRaster
+   arcpy.env.mask = inMask
 
    printMsg("Merging datasets...")
    arcpy.Merge_management(feats, 'popMask_feats')
-   arcpy.CalculateField_management('popMask_feats', 'rast', '1', field_type="SHORT")
-   arcpy.PolygonToRaster_conversion('popMask_feats', value_field='rast',
-                                    out_rasterdataset='popMask_rast0',
-                                    cellsize=inRaster)
+   calcFld('popMask_feats', 'rast', '1', field_type="SHORT")
+   lyr = arcpy.MakeFeatureLayer_management('popMask_feats')
+   arcpy.SelectLayerByLocation_management(lyr, "INTERSECT", inMask)
+   printMsg("Rasterizing features...")
+   arcpy.PolygonToRaster_conversion(lyr, value_field='rast', out_rasterdataset='popMask_rast0', cellsize=inRaster)
    printMsg("Creating raster mask...")
    arcpy.sa.SetNull(arcpy.sa.IsNull('popMask_rast0'), 1, "Value = 0").save(outMask)
+   arcpy.BuildPyramids_management(outMask)
 
    return outMask
 
@@ -215,20 +220,32 @@ def makePopMask(feats, inRaster, outMask):
 def main():
    # Set up variables
    arcpy.env.workspace = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb'
-   inBlocks = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\ACS_2014_2018_5yr_BG_Clip'  # r'H:\Working\ACS_2016\ACS_2016_5yr_BG.shp'
+   arcpy.env.overwriteOutput = True
+
+   # Make population mask. Features indicate exclusion areas for poplation. They will be NoData in the PopMask.
+   feats = [  # r'E:\projects\rec_model\rec_model.gdb\CensusBlocks_noLand',
+      r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss',
+      r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final']
+   inMask = r'L:\David\projects\RCL_processing\RCL_processing.gdb\VA_Buff50mi_wgs84'
+   inRaster = r'L:\David\projects\RCL_processing\Tiger_2019\roads_proc.gdb\Roads_kdens_250_noZero'
+   outMask = 'population_mask_raster'
+   makePopMask(feats, inMask, inRaster, outMask)
+
+   # Make population density raster
+   inBlocks = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\ACS_2015_2019_5yr_BG'  # r'H:\Working\ACS_2016\ACS_2016_5yr_BG.shp'
    fldPop = 'total_pop_clip'  # 'TotPop_clp'
    inRoadDens = r'L:\David\projects\RCL_processing\Tiger_2019\roads_proc.gdb\Roads_kdens_250_noZero'  # r'H:\Working\RecMod\RecModProducts.gdb\Roads_kdens_250'
-   outPop = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2019rd'  # r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
-   tmpDir = r'E:\projects\rec_model\rec_model_processing\_temp'  # r'H:\Working\TMP'
-
-   # Make population mask
-   mask_features = [r'E:\projects\rec_model\rec_model.gdb\CensusBlocks_noLand',
-                    r'E:\projects\rec_model\rec_datasets\rec_datasets_prep_clean\rec_datasets.gdb\prep_VA_PUBLIC_ACCESS_LANDS_20190201_diss2']
+   outPop = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2019'  # r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
+   tmpDir = r'D:\scratch\raster'  # r'H:\Working\TMP'
    popMask = 'population_mask_raster'
-   makePopMask(mask_features, inRoadDens, popMask)
    
    # Specify function to run
    DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir, popMask)
+
+   # QA/QC: double-check that sum is reasonable:
+   # a = arcpy.RasterToNumPyArray(outPop, nodata_to_value=0)
+   # print('Raster sum of population: ' + str(a.sum()) + '.')
+   # print('Polygon sum of population: ' + str(sum([a[0] for a in arcpy.da.SearchCursor(inBlocks, fldPop)])) + '.')
 
 if __name__ == '__main__':
    main()

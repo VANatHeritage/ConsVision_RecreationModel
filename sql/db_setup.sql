@@ -43,9 +43,11 @@ CREATE TABLE rec_access.access_t (
 	src_table CHARACTER VARYING REFERENCES lookup.src_table (table_name),
 	src_id integer,
 	src_cid CHARACTER VARYING, -- lookup.src_table.table_code + src_id
+	-- src_name CHARACTER VARYING,  -- not implemented; should create a field with this name in original rec_source datasets (e.g. in ArcGIS)
 	join_table character varying REFERENCES lookup.src_table (table_name),
 	join_fid integer,
 	join_score double precision,
+	join_name CHARACTER VARYING,
 	use integer,
 	use_why character varying,
 	road_dist double precision,
@@ -62,9 +64,11 @@ CREATE TABLE rec_access.access_a (
 	src_table CHARACTER VARYING REFERENCES lookup.src_table (table_name),
 	src_id integer,
 	src_cid CHARACTER VARYING, -- lookup.src_table.table_code + src_id
+	-- src_name CHARACTER VARYING, -- not implemented; should create a field with this name in original rec_source datasets (e.g. in ArcGIS)
 	join_table character varying REFERENCES lookup.src_table (table_name),
 	join_fid integer,
 	join_score double precision,
+	join_name CHARACTER VARYING,  -- not implemented for aquatic; leaving for now
 	use integer,
 	use_why character varying,
 	road_dist double precision,

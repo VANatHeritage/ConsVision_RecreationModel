@@ -1,16 +1,15 @@
 ﻿-- Associating local parks points and public lands
 
 /*
-TODO: rename pub_lands_final_2 to pub_lands_final. Original "new" polygons did not
-retain multi-polygons that were maintatined across water. This resulted in a small
-number of "new" polygons that are now combined back into original pub_lands_dissolve
-polygons.
+NOTE: public.pub_lands_final is now an archived dataset. It was used in the Feb 2019 version of the Rec Access model.
+The current dataset is now rec_access.pub_lands_final. This should be used in the rec_access.sql script.
 
 Script uses:
 -- rec_source.local_parks
 -- rec_source.pub_lands (for determining if points are associated with polygons already)
 -- rec_source.pub_lands_dissolve (for combining with buffered, unassociated points into pub_lands_final)
 */
+
 
 -- park_name, total_acres
 select * from rec_source.local_parks limit 5; -- any subset of this????
@@ -85,6 +84,7 @@ delete from local_parks_areas a where a.pt_id in (select a.pt_id from local_park
 insert into local_parks_areas (pt_id, pt_name, pt_acre, geom, geom_poly) select pt_id, pt_name, pt_acre, geom, int_geom from ints;
 
 
+
 -- create final table of public lands
 -- pub_lands_final ints
 drop table ints;
@@ -96,63 +96,87 @@ where a.geom_poly is not null
 and b.water = 0
 and st_intersects(a.geom_poly, b.geom);
 
-drop table pub_lands_final_2;
-create table pub_lands_final_2 (
+drop table rec_access.pub_lands_final;
+create table rec_access.pub_lands_final (
 objectid serial primary key,
 pub_lands_dissolve_objectid int,
 local_parks_areas_pt_id int,
 geom geometry('MultiPolygon', 5070));
 
 -- pub lands dissolve
-insert into pub_lands_final_2 (pub_lands_dissolve_objectid, geom) 
+insert into rec_access.pub_lands_final (pub_lands_dissolve_objectid, geom) 
 select objectid, st_force2d(geom) from rec_source.pub_lands_dissolve where water = 0
 and objectid not in (select objectid from ints);
 
 -- buffered local park points
-insert into pub_lands_final_2 (local_parks_areas_pt_id, geom) 
+insert into rec_access.pub_lands_final (local_parks_areas_pt_id, geom) 
 select pt_id, st_multi(geom_poly) from local_parks_areas where geom_poly is not null
 and pt_id not in (select pt_id from ints);
 
 -- new polygons (from two tables intersects)
-insert into pub_lands_final_2(geom) 
+insert into rec_access.pub_lands_final(geom) 
 select st_multi((st_dump(st_union(geom))).geom) from
 (select st_union(geom_poly) geom from local_parks_areas where pt_id in (select pt_id from ints)
 union all
 select st_union(geom) from rec_source.pub_lands_dissolve where objectid in (select objectid from ints)) a;
 
+
 -- update new (combined) polygons with an objectid from pub_lands_dissolve 
-update pub_lands_final_2 b set pub_lands_dissolve_objectid = 
+update rec_access.pub_lands_final b set pub_lands_dissolve_objectid = 
 aoid from
 (select distinct on (b.objectid) a.objectid aoid, b.objectid boid from
-rec_source.pub_lands_dissolve a, pub_lands_final_2 b
+rec_source.pub_lands_dissolve a, rec_access.pub_lands_final b
 where st_intersects(b.geom, a.geom)
 and a.water = 0
 and b.pub_lands_dissolve_objectid is null and b.local_parks_areas_pt_id is null
 order by b.objectid, st_area(a.geom) desc) sub
 where objectid = boid;
 -- re-combine those geoms
-update pub_lands_final_2 set geom = a.geom
+update rec_access.pub_lands_final set geom = a.geom
 from
-(select pub_lands_dissolve_objectid, st_union(geom) geom from pub_lands_final_2 
+(select pub_lands_dissolve_objectid, st_union(geom) geom from rec_access.pub_lands_final 
 where pub_lands_dissolve_objectid is not null
 group by pub_lands_dissolve_objectid having count(*) > 1) a
-where pub_lands_final_2.pub_lands_dissolve_objectid = a.pub_lands_dissolve_objectid;
+where rec_access.pub_lands_final.pub_lands_dissolve_objectid = a.pub_lands_dissolve_objectid;
 -- delete dups by geom
-delete from pub_lands_final_2 where objectid not in
+delete from rec_access.pub_lands_final where objectid not in
 (select distinct on (geom) min(objectid)
-from pub_lands_final_2
+from rec_access.pub_lands_final
 group by geom);
 
+-- Make valid, geometry
+update rec_access.pub_lands_final set geom = st_makevalid(geom);
+-- add names to polygons
+alter table rec_access.pub_lands_final add column pub_lands_dissolve_name varchar(300);
+alter table rec_access.pub_lands_final add column local_parks_areas_name varchar(300);
+-- add names from points
+update rec_access.pub_lands_final set local_parks_areas_name = b.pt_name 
+from local_parks_areas b 
+where local_parks_areas_pt_id = b.pt_id;
+-- add names from polys
+update rec_access.pub_lands_final set pub_lands_dissolve_name = sub.maname 
+from 
+	(select distinct on (pld_oid) * FROM (
+		select a.objectid pld_oid, b.label, b.maname, st_area(b.geom) size
+		from rec_source.pub_lands_dissolve a, rec_source.pub_lands b
+		where a.water = 0 and
+		st_intersects(st_closestpoint(a.geom, st_centroid(a.geom)), b.geom)) s
+	order by pld_oid, size desc) sub
+where pub_lands_dissolve_objectid = sub.pld_oid;
 
-select sum(st_area(geom))/100000 from rec_source.pub_lands_dissolve where water = 0;
+/* -- checks
+select * from rec_access.pub_lands_final where pub_lands_dissolve_objectid is null and local_parks_areas_pt_id is null;
+select * from rec_access.pub_lands_final where pub_lands_dissolve_name is null and local_parks_areas_name is null;
+select * from rec_source.pub_lands where maname is null;
+*/
 
-vacuum analyze pub_lands_final_2;
+vacuum analyze rec_access.pub_lands_final;
 -- finalize
-create index pub_lands_final_2_geomidx on pub_lands_final_2 USING gist (geom); 
--- insert into lookup.src_table (table_name) values ('pub_lands_final_2');
+create index pub_lands_final_geomidx on rec_access.pub_lands_final USING gist (geom); 
+-- insert into lookup.src_table (table_name) values ('pub_lands_final');
 
 -- check self-intersects
-select a.*, b.* from pub_lands_final_2 a,
- pub_lands_final_2 b
+select a.*, b.* from rec_access.pub_lands_final a,
+ rec_access.pub_lands_final b
  where st_intersects(a.geom, b.geom) and st_overlaps(a.geom, b.geom) and a.objectid != b.objectid;
 -- should return nothing

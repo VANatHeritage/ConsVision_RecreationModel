@@ -1,4 +1,5 @@
 ﻿/*
+DEPRECATED: See rec_access.sql
 Facilities tables for recreation model.
 
 Creates new 'all_facil' and 'all_facil_aqua' tables,
