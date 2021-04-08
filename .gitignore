@@ -6,3 +6,4 @@ sql/upload_ogr.txt
 .idea*
 venv*
 data/templates.gdb
+recycling.py

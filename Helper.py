@@ -16,6 +16,8 @@ from arcpy.sa import *
 arcpy.CheckOutExtension("Spatial")
 scratchGDB = arcpy.env.scratchGDB
 arcpy.env.overwriteOutput = True
+arcpy.env.maintainAttachments = False
+
 
 def countFeatures(features):
    '''Gets count of features'''

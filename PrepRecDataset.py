@@ -21,14 +21,16 @@ indicate the type of recreation access available, and whether to exclude certain
 import arcpy
 import os
 import time
+import re
 arcpy.env.transferDomains = True
+arcpy.env.maintainAttachments = False
 
 
 def PrepRecDataset(data, study_area, out_gdb, access_types, feature_names=None):
 
    date = time.strftime('%Y%m%d')
    data_nm = os.path.basename(data).replace('.shp', '')
-   out_fc = out_gdb + os.sep + 'prep_' + data_nm.replace(' ', '_') + '_' + str(date)
+   out_fc = out_gdb + os.sep + 'prep_' + re.sub(' |-', '', data_nm) + '_' + str(date)
    if arcpy.Exists(out_fc):
       arcpy.Delete_management(out_fc)
 
@@ -39,9 +41,7 @@ def PrepRecDataset(data, study_area, out_gdb, access_types, feature_names=None):
    lyr = arcpy.MakeFeatureLayer_management(data)
    arcpy.SelectLayerByLocation_management(lyr, "INTERSECT", study_area)
    arcpy.CalculateField_management(lyr, "tmpfid", "!" + src_fid + "!", field_type="LONG")
-   # with arcpy.EnvManager(transferDomains="TRANSFER_DOMAINS"):
    arcpy.FeatureClassToFeatureClass_conversion(lyr, out_gdb, 'tmpft')
-   # arcpy.CopyFeatures_management(lyr, out_gdb + os.sep + 'tmpft')
    print('Projecting features...')
    arcpy.Project_management(out_gdb + os.sep + 'tmpft', out_fc, study_area)
    arcpy.RepairGeometry_management(out_fc)
@@ -60,13 +60,13 @@ def PrepRecDataset(data, study_area, out_gdb, access_types, feature_names=None):
            ["use_why", "TEXT", "Model use comment"]]
    arcpy.AddFields_management(out_fc, flds)
    # calculate fields
-   fc_name = os.path.basename(data)
+   # fc_name = os.path.basename(data)
    add = ['tmpfid']
    if feature_names in [a.name for a in data_flds]:
       add.append(feature_names)
    with arcpy.da.UpdateCursor(out_fc, [f[0] for f in flds] + add) as uc:
       for r in uc:
-         r[0] = fc_name
+         r[0] = data_nm
          r[1] = r[11]
          if feature_names:
             r[2] = r[12]
@@ -95,24 +95,29 @@ def PrepRecDataset(data, study_area, out_gdb, access_types, feature_names=None):
       # Points get join score of 1. Can manually update if needed
       arcpy.CalculateField_management(out_fc, "join_score", '1', field_type="DOUBLE")
 
+   del lyr
    print('Cleaning up...')
    arcpy.DeleteField_management(out_fc, 'tmpfid')
-   arcpy.DeleteField_management(lyr, 'tmpfid')
+   arcpy.DeleteField_management(data, 'tmpfid')
    arcpy.Delete_management(out_gdb + os.sep + 'tmpft')
 
    return out_fc
 
 
-data = arcpy.GetParameterAsText(0)
-study_area = arcpy.GetParameterAsText(1)
-out_gdb = arcpy.GetParameterAsText(2)
-access_types = [a.strip('\'') for a in arcpy.GetParameterAsText(3).split(";")]
-feature_names = arcpy.GetParameterAsText(4)
+def main():
+   data = arcpy.GetParameterAsText(0)
+   study_area = arcpy.GetParameterAsText(1)
+   out_gdb = arcpy.GetParameterAsText(2)
+   access_types = [a.strip('\'') for a in arcpy.GetParameterAsText(3).split(";")]
+   feature_names = arcpy.GetParameterAsText(4)
 
-arcpy.AddMessage("Access types: (" + ", ".join(access_types) + ")")
-out = PrepRecDataset(data, study_area, out_gdb, access_types, feature_names)
-# Setting parameter will add to the Map
-arcpy.SetParameter(5, out)
+   arcpy.AddMessage("Access types: (" + ", ".join(access_types) + ")")
+   out = PrepRecDataset(data, study_area, out_gdb, access_types, feature_names)
+   # Setting parameter will add to the Map
+   arcpy.SetParameter(5, out)
+
+if __name__ == '__main__':
+   main()
 
 #############################
 

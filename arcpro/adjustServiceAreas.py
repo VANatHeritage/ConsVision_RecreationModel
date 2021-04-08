@@ -165,7 +165,7 @@ def main():
 
    # create population adjustment rasters (e.g. area / population)
    arcpy.env.overwriteOutput = True
-   popRast = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens'
+   popRast = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2020'
    arcpy.env.workspace = r'E:\projects\rec_model\rec_model_processing\serviceAreas_testing'
    # arcpy.env.workspace = r'E:\arcpro_wd\rec_model_temp\serviceAreas_modelupdate_Feb2019'
 
