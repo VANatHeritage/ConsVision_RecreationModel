@@ -410,7 +410,8 @@ acc_lyr = arcpy.MakeFeatureLayer_management(roads_all, where_clause="MTFCC NOT I
 addMetrics_accessAcres(publands_final, acc_lyr, "rdacc", "300 Feet", internal=True)
 
 # OSM minor roads+trails data. These are likely to include roads/paths not in Tiger
-osm_all = r'E:\projects\OSM\VA_50mile_20210329.gdb\VA_50mile_osm_line_nonstandard'
+osm_all = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210421'  #  r'E:\projects\OSM\VA_50mile_20210329.gdb\VA_50mile_osm_line_nonstandard'
+acc_lyr = arcpy.MakeFeatureLayer_management(osm_all, where_clause="code NOT IN (5111, 5112, 5131, 5132)")  # just exclude motorway/trunk and their link roads
 addMetrics_accessAcres(publands_final, osm_all, "osmacc", "300 Feet", internal=True)
 
 # Calculate accessible area (TRAILS)

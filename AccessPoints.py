@@ -10,12 +10,12 @@ individual access point datasets have been generated using the tool in PrepRecDa
 Functions include:
    updateFacilCodes: assign attributes for specific recreation types to individual recreation datasets
    appendAccessPoints: append an individual access point dataset to the master dataset
+   generateAccessPoints: internal fn to generate access points from features based on distance to near features
    assocRecFeatures: associate recreation features to access points in the master dataset, and generate one point per
       unassociated feature
    assocAccessPoints: associate access point master dataset with recreation features (PPA), updating `join_` attributes
+      and generating points for unassociated join features
    finalizeAccessPoints: output subsets of access points from the master dataset, by recreation access type
-
-Decide: distance to associate points with (1) lands and (2) trails
 """
 
 from Helper import *
@@ -64,6 +64,51 @@ def appendAccessPoints(pts, master, apply=True):
    return master
 
 
+def generateAccessPoints(feats, near_to=None, out='tmp_generated_pts'):
+
+   arcpy.CopyFeatures_management(feats, 'tmp_unassoc')
+   print("Generating access points for " + str(arcpy.GetCount_management('tmp_unassoc')) + " unassociated features...")
+
+   if arcpy.Describe('tmp_unassoc').shapeType == 'Polygon':
+      arcpy.EliminatePolygonPart_management('tmp_unassoc', 'tmp_fill', "PERCENT", 50, "CONTAINED_ONLY")
+      arcpy.FeatureToLine_management('tmp_fill', 'tmp_line')
+      f_lyr = arcpy.MakeFeatureLayer_management('tmp_line')
+   else:
+      f_lyr = arcpy.MakeFeatureLayer_management('tmp_unassoc')
+   if not near_to:
+      # This should generate one pt per feature (on/in the feature near center)
+      arcpy.FeatureToPoint_management(f_lyr, out, "INSIDE")
+   else:
+      # get all intersections with those intersecting near_to
+      arcpy.SelectLayerByLocation_management(f_lyr, "INTERSECT", near_to)
+      arcpy.PairwiseIntersect_analysis([f_lyr, near_to], 'tmp_ints', output_type="POINT")
+      arcpy.MultipartToSinglepart_management('tmp_ints', 'tmp_feat')
+      arcpy.CalculateField_management('tmp_feat', 'NEAR_DIST', '0', field_type="FLOAT")
+      arcpy.SelectLayerByAttribute_management(f_lyr, "SWITCH_SELECTION")
+      print("Finding nearest point to near_to features...")
+      arcpy.FeatureVerticesToPoints_management(f_lyr, 'tmp_feat0a', "DANGLE")  # "ALL" is too many points
+      arcpy.GeneratePointsAlongLines_management(f_lyr, 'tmp_feat0b', 'DISTANCE', Distance='300 Feet',
+                                                Include_End_Points='END_POINTS')
+      arcpy.Merge_management(['tmp_feat0a', 'tmp_feat0b'], 'tmp_feat0')
+      # features > 1 mile distant will not receive an access point
+      arcpy.Near_analysis('tmp_feat0', near_to, "1 Mile")
+      arcpy.Select_analysis('tmp_feat0', 'tmp_feat1', "NEAR_DIST >= 0")
+      arcpy.Append_management('tmp_feat1', 'tmp_feat', "NO_TEST")
+      # Now reduce points to one per input feature
+      arcpy.Sort_management('tmp_feat', out, [["src_fid", "ASCENDING"], ["NEAR_DIST", "ASCENDING"]])
+      arcpy.DeleteIdentical_management(out, ["src_fid"])
+      # coulddo: Add one centroid point for those features not within 0.5 miles of roads
+      # arcpy.SelectLayerByAttribute_management(f_lyr, "SWITCH_SELECTION")
+      # arcpy.FeatureToPoint_management(f_lyr, "tmp_feat2", "INSIDE")
+      # arcpy.Append_management('tmp_feat2', 'tmp_feat', "NO_TEST")
+
+      arcpy.DeleteIdentical_management(out, 'Shape')
+      arcpy.CalculateField_management(out, "use", "2")
+      arcpy.CalculateField_management(out, "use_why", "'access point generated'")
+
+   return out
+
+
 def assocRecFeatures(feats, master, facil_codes, join_dist, near_to=None):
    # updates access point facil_code(s) when within the `join_dist` of a recreation feature. Will generate
    # one point per unassociated feature, based on relationship with near_to features.
@@ -78,6 +123,7 @@ def assocRecFeatures(feats, master, facil_codes, join_dist, near_to=None):
 
    # This will delete existing points in the master table, which originated from the current table.
    appendAccessPoints(feats, master, apply=False)
+
    # Set up layers
    m_lyr = arcpy.MakeFeatureLayer_management(master)
    f_lyr = arcpy.MakeFeatureLayer_management(feats, where_clause="use > 0")
@@ -92,52 +138,15 @@ def assocRecFeatures(feats, master, facil_codes, join_dist, near_to=None):
 
    # add access points for unassociated features
    arcpy.SelectLayerByLocation_management(f_lyr, "WITHIN_A_DISTANCE", m_lyr, join_dist, invert_spatial_relationship=True)
+   del m_lyr
    if int(arcpy.GetCount_management(f_lyr)[0]) > 0:
-      arcpy.CopyFeatures_management(f_lyr, 'tmp_unassoc')
-      print("Generating access points for " + str(arcpy.GetCount_management('tmp_unassoc')) + " unassociated features...")
-      # coulddo: Previous method.
-      #  were grouped using a 0.25 mile grouping distance (would do this prior to this step)
-      #  for streams not already associated with an access point, generated one point each:
-      #  for streams intersecting roads - the closest point on road intersections to the stream centroid
-      #  for streams not intersecting roads - the closest point on the stream to a road
-      if arcpy.Describe('tmp_unassoc').shapeType == 'Polygon':
-         arcpy.EliminatePolygonPart_management('tmp_unassoc', 'tmp_fill', "PERCENT", part_area_percent=50, part_option="CONTAINED_ONLY")
-         arcpy.FeatureToLine_management('tmp_fill', 'tmp_line')
-         f_lyr = arcpy.MakeFeatureLayer_management('tmp_line')
-      else:
-         f_lyr = arcpy.MakeFeatureLayer_management('tmp_unassoc')
-      if not near_to:
-         arcpy.FeatureToPoint_management(f_lyr, "tmp_feat_pt", "INSIDE")  # This should generate one pt per feature (on/in the feature near center)
-      else:
-         # get all intersections with those intersecting near_to
-         arcpy.SelectLayerByLocation_management(f_lyr, "INTERSECT", near_to)
-         arcpy.PairwiseIntersect_analysis([f_lyr, near_to], 'tmp_ints', output_type="POINT")
-         arcpy.MultipartToSinglepart_management('tmp_ints', 'tmp_feat')
-         arcpy.CalculateField_management('tmp_feat', 'NEAR_DIST', '0', field_type="FLOAT")
-         arcpy.SelectLayerByAttribute_management(f_lyr, "SWITCH_SELECTION")
-         print("Finding nearest point on near_to features...")
-         arcpy.FeatureVerticesToPoints_management(f_lyr, 'tmp_feat0a', "DANGLE")  # "ALL" is too many points
-         arcpy.GeneratePointsAlongLines_management(f_lyr, 'tmp_feat0b', 'DISTANCE', Distance='300 Feet', Include_End_Points='END_POINTS')
-         arcpy.Merge_management(['tmp_feat0a', 'tmp_feat0b'], 'tmp_feat0')
-         arcpy.Near_analysis('tmp_feat0', near_to, "1 Mile")
-         arcpy.Select_analysis('tmp_feat0', 'tmp_feat1', "NEAR_DIST >= 0")  # features > 1 mile distant will not receive an access point
-         arcpy.Append_management('tmp_feat1', 'tmp_feat', "NO_TEST")
-         # Now reduce points to one per input feature
-         arcpy.Sort_management('tmp_feat', 'tmp_feat_pt', [["src_fid", "ASCENDING"], ["NEAR_DIST", "ASCENDING"]])
-         arcpy.DeleteIdentical_management('tmp_feat_pt', ["src_fid"])
-         # coulddo: Add one centroid point for those features not within 0.5 miles of roads
-         # arcpy.SelectLayerByAttribute_management(f_lyr, "SWITCH_SELECTION")
-         # arcpy.FeatureToPoint_management(f_lyr, "tmp_feat2", "INSIDE")
-         # arcpy.Append_management('tmp_feat2', 'tmp_feat', "NO_TEST")
-      arcpy.DeleteIdentical_management('tmp_feat_pt', 'Shape')
-      arcpy.CalculateField_management('tmp_feat_pt', "use", "2")
-      arcpy.CalculateField_management('tmp_feat_pt', "use_why", "'access point generated'")
-      del m_lyr
-   appendAccessPoints('tmp_feat_pt', master)
+      gen = generateAccessPoints(f_lyr, near_to)
+      appendAccessPoints(gen, master)
+
    return master
 
 
-def assocAccessPoints(master, join, join_dist, facil_codes=[], only_unjoined=True):
+def assocAccessPoints(master, join, join_dist, facil_codes=[], only_unjoined=True, near_to=None):
    # update access point 'join_' fields with join features (PPAs)
 
    if not isinstance(facil_codes, list):
@@ -149,7 +158,10 @@ def assocAccessPoints(master, join, join_dist, facil_codes=[], only_unjoined=Tru
          print('All points already joined, returning with no changes...')
          return master
    else:
+      # remove existing points originating from table
+      appendAccessPoints(join, master, apply=False)
       lyr = arcpy.MakeFeatureLayer_management(master)
+
    print('Joining `' + os.path.basename(master) + '` with features `' +
          os.path.basename(join) + '` at a distance of `' + join_dist + '`.')
    join_lyr = arcpy.MakeFeatureLayer_management(join, where_clause="use > 0")
@@ -177,6 +189,17 @@ def assocAccessPoints(master, join, join_dist, facil_codes=[], only_unjoined=Tru
       arcpy.CalculateField_management(lyr, f, '1')
    del lyr
    arcpy.DeleteField_management(master, flds1)
+
+   if not only_unjoined:
+      print('Generating points for unassociated features...')
+      # get IDs of un-associated features (not associated with a USED access point)
+      assoc = [str(a[0]) for a in arcpy.da.SearchCursor(master, ['join_fid', 'use']) if a[1] > 0 and a[0] is not None]
+      f_lyr = arcpy.MakeFeatureLayer_management(join, where_clause="src_fid NOT IN (" + ",".join(assoc) + ")")
+      gen = generateAccessPoints(f_lyr, near_to)
+      for f in ['src_fid', 'src_table', 'src_name']:
+         arcpy.CalculateField_management(gen, f.replace('src_', 'join_'), "!" + f + "!")
+      appendAccessPoints(gen, master)
+   # clean up
    arcpy.Delete_management('tmp_sj')
 
    return master
@@ -256,7 +279,7 @@ nhd_flow = r'L:\David\GIS_data\NHD\NHD_Merged.gdb\NHDFlowline'
 nhd_areawtrb = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss'
 
 # Make a new access points master dataset in the geodatabase
-master = gdb + os.sep + 'access_points'
+master = gdb + os.sep + 'access_points_TEST'
 # arcpy.CopyFeatures_management(master, master + '_archived')
 # arcpy.Delete_management(master)
 if not arcpy.Exists(master):
@@ -339,16 +362,15 @@ trails_group = 'prep_VATrails_2021_20210317_final_group_20210325'
 # update use for networks < 1 mile in length
 arcpy.CalculateField_management(trails_group, 'use', "min(math.floor(!join_score!), 1)")
 assocRecFeatures(trails_group, master, 't_trl', '300 Feet', near_to=roads)
-# PPAs (will generate one point per unassociated PPA)
-assocRecFeatures(ppa, master, 't_lnd', '300 Feet', near_to=roads)
 
 
-# 4a. Update access points `join_` fields from the PPAs
-assocAccessPoints(master, join=ppa, join_dist='300 Feet', facil_codes=[], only_unjoined=False)
+# 4a. Update access points `join_` fields from the PPAs. Also generates (1) point per unassociated PPA.
+# arcpy.CalculateField_management(ppa, 'join_score', '!accgreen_acres!')
+assocAccessPoints(master, join=ppa, join_dist='300 Feet', facil_codes=['t_lnd'], only_unjoined=False, near_to=roads)
 
 # 4b. Create a new PPA layer with facil_code counts added
 flds = ['t_lnd', 't_trl', 'a_wct', 'a_fsh', 'a_swm', 'a_gen']
-ppa_final = 'public_lands_facil_' + time.strftime("%Y%m%d")
+ppa_final = 'public_lands_facil_' + Ymd()
 stats = [['t_lnd', "SUM"], ['t_trl', "SUM"], ['a_wct', "SUM"], ['a_fsh', "SUM"], ['a_swm', "SUM"], ['a_gen', "SUM"]]
 # decide: include local park inventory points? probably not.
 lyr = arcpy.MakeFeatureLayer_management(master, where_clause="use IN (1,2) and src_table <> 'LocalParkInventory_2021_QC'")
@@ -362,6 +384,7 @@ arcpy.CalculateField_management(ppa_final, 'facil_variety', cb, field_type="LONG
 nullToZero(ppa_final, 'facil_variety')
 arcpy.DeleteField_management(ppa_final, ['SUM_' + f for f in flds])
 
+
 # 5. update aquatic access points if not within 0.25 Miles of a waterbody or stream.
 lyr = arcpy.MakeFeatureLayer_management(master, where_clause="(a_wct = 1 OR a_swm = 1 OR a_fsh = 1 OR a_gen = 1)")
 arcpy.SelectLayerByAttribute_management(lyr, "NEW_SELECTION")
@@ -372,14 +395,20 @@ if arcpy.GetCount_management(lyr)[0] != '0':
    [arcpy.CalculateField_management(lyr, i, '0') for i in ['a_wct', 'a_fsh', 'a_gen', 'a_swm']]
 del lyr
 
+
 # 6. Make final access points datasets. One per access type.
-# Note: some points may be use=1 in the master dataset, but with no associated access types. These will not be in final datasets.
+# Note: some points may be use=1 in the master dataset, but with no associated access types. These will not be in
+# finalized datasets, which are based off of a specific facility type.
 # TODO: set criteria for exclusion based on (e.g. small trails, parks)?
 out_gdb = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb'
 # decide: snap here? how to group? Just by distance or with join_fid from PPA?
-finalizeAccessPoints(master, out_gdb, facil_codes=['a_swm', 'a_wct', 'a_fsh'], group_dist="0.25 Miles", combine=True)  # , snap_to=roads
+finalizeAccessPoints(master, out_gdb, facil_codes='t_lnd', group_dist=None)
+# join group_id from PPAs for these...
+# arcpy.JoinField_management(out_gdb + os.sep + 'access_points_TEST_t_lnd_' + Ymd(), 'join_fid', ppa, 'OBJECTID', ['accgreen_acres', 'group_id'])
+# arcpy.AlterField_management(out_gdb + os.sep + 'access_points_TEST_t_lnd_' + Ymd(), 'group_id_1', 'ppa_group_id', clear_field_alias=True)
 
-# 6b. grouping for aquatics.
+# Water access
+finalizeAccessPoints(master, out_gdb, facil_codes=['a_swm', 'a_wct', 'a_fsh'], group_dist="0.25 Miles", combine=True)
 lyr = out_gdb + os.sep + 'access_points_combined_20210406'
 flds = ['a_wct', 'a_fsh', 'a_swm']
 arcpy.Statistics_analysis(lyr, 'facil', [[f, "SUM"] for f in flds], case_field="group_id")

@@ -40,15 +40,15 @@ makeServiceAreas Argument definitions:
          3. None (empty). The original cost distance raster is returned (value = the cost distance).
 """
 
-# Environment Settings (note that snap, cell size, coordinate system, extent are set within makeServiceAreas function)
-arcpy.env.mask = r'L:\David\projects\RCL_processing\RCL_processing.gdb\VA_Buff50mi_wgs84'
-arcpy.env.overwriteOutput = True
-
 # Cost rasters and ramp points
 costRastLoc = r'E:\RCL_cost_surfaces\Tiger_2020\cost_surfaces.gdb\costSurf_no_lah'
 costRastHwy = r'E:\RCL_cost_surfaces\Tiger_2020\cost_surfaces.gdb\costSurf_only_lah'
 rampPts = r'E:\RCL_cost_surfaces\Tiger_2020\cost_surfaces.gdb\rmpt_final'
 rampPtsID = 'UniqueID'  # unique ramp segment ID attribute field, since some ramps have multiple points
+
+# Environment Settings (note that snap, cell size, coordinate system, extent are set within makeServiceAreas function)
+arcpy.env.mask = costRastLoc
+arcpy.env.overwriteOutput = True
 
 # Access features source GDB. Can output data here to use as inputs
 accFeatGDB = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb'
@@ -67,21 +67,35 @@ servAreaDir = r'E:\projects\rec_model\rec_model_processing\serviceAreas'
 #  x Swimming access within a 30-minute drive
 
 
-# 1. Methods for individual service areas (aquatics loop)
+# 1. Methods for individual service areas (aquatics)
 arcpy.env.parallelProcessingFactor = "0%"  # Adjust to some percent (e.g. 100%) for large extent analyses.
 # original source features
-# accFeat0 = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final_accessAreas'
-for d in ['access_points_a_swm_20210406', 'access_points_a_wct_20210406', 'access_points_a_fsh_20210406']:
-   accFeat = accFeatGDB + os.sep + d
-   # Set run parameters
-   outGDB = servAreaDir + os.sep + 'servArea_30min_' + os.path.basename(accFeat) + '.gdb'
-   grpFld = 'group_id'  # 'join_fid'
-   maxCost = 30
-   attFld = None  # 'SUM_accgreen_acres'  # 'join_score'
-   makeServiceAreas(outGDB, accFeat, costRastLoc, costRastHwy, rampPts, rampPtsID, grpFld, maxCost, attFld)
+accFeat0 = accFeatGDB + os.sep + 'access_points_combined_20210406'
+accFeat = arcpy.MakeFeatureLayer_management(accFeat0)
+arcpy.SelectLayerByLocation_management(accFeat, "WITHIN_A_DISTANCE", r'C:\David\scratch\jurisbnd_lam.shp', "30 Miles")
+# Set run parameters
+grpFld = 'group_id'  # 'join_fid'
+maxCost = 30
+attFld = 1  # 'SUM_accgreen_acres'  # 'join_score'
+outGDB = servAreaDir + os.sep + 'servArea_' + str(maxCost) + 'min_' + os.path.basename(accFeat0) + '.gdb'
+makeServiceAreas(outGDB, accFeat, costRastLoc, costRastHwy, rampPts, rampPtsID, grpFld, maxCost, attFld)
+
+# Todo: 60-minute service areas for each [fishing, swimming, boating]
+arcpy.env.parallelProcessingFactor = "80%"  # Adjust to some percent (e.g. 100%) for large extent analyses.
+# original source features
+accFeat = accFeatGDB + os.sep + 'access_points_a_fsh_20210406'
+# Set run parameters
+arcpy.CalculateField_management(accFeat, 'facil', "'fishing'", field_type="TEXT")
+grpFld = 'facil'
+maxCost = 60
+attFld = None  # get cost distance, for more flexibility
+outGDB = servAreaDir + os.sep + 'servArea_60min_byFacil.gdb'
+makeServiceAreas(outGDB, accFeat, costRastLoc, costRastHwy, rampPts, rampPtsID, grpFld, maxCost, attFld)
 
 
-# 1. Methods for individual service areas
+
+
+# 1. Methods for individual service areas (PPA)
 arcpy.env.parallelProcessingFactor = "0%"  # Adjust to some percent (e.g. 100%) for large extent analyses.
 # original source features
 accFeat0 = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final_accessAreas'
@@ -94,10 +108,10 @@ accFeat = arcpy.MakeFeatureLayer_management(accFeat0, where_clause="access = 1 A
 #  >600 = 280
 #  >1000 = 197
 # Set run parameters
-outGDB = servAreaDir + os.sep + 'servArea_30min_' + os.path.basename(accFeat) + '.gdb'
 grpFld = 'group_id'  # 'join_fid'
 maxCost = 30
 attFld = 1  # 'SUM_accgreen_acres'  # 'join_score'
+outGDB = servAreaDir + os.sep + 'servArea_' + str(maxCost) + 'min_' + os.path.basename(accFeat) + '.gdb'
 makeServiceAreas(outGDB, accFeat, costRastLoc, costRastHwy, rampPts, rampPtsID, grpFld, maxCost, attFld)
 
 
@@ -106,20 +120,14 @@ arcpy.env.parallelProcessingFactor = "80%"  # Adjust to some percent (e.g. 100%)
 # PPAs
 accFeat0 = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final_accessAreas'
 accFeat = arcpy.Select_analysis(accFeat0, accFeatGDB + os.sep + os.path.basename(accFeat0), "accgreen_acres >= 5")
-outGDB = servAreaDir + os.sep + 'driveTime_5acAG_' + os.path.basename(accFeat0) + '.gdb'
 # aqautics
 # accFeat = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb\access_points_combined_20210406'
 # outGDB = servAreaDir + os.sep + 'driveTime_' + os.path.basename(accFeat) + '.gdb'
 grpFld = None  # Treats all rows as one group.
 maxCost = None
 attFld = None
+outGDB = servAreaDir + os.sep + 'driveTime_5acAG_' + os.path.basename(accFeat0) + '.gdb'
 makeServiceAreas(outGDB, accFeat, costRastLoc, costRastHwy, rampPts, rampPtsID, grpFld, maxCost, attFld)
-
-# round values
-inRast = outGDB + os.sep + 'grp_1_servArea'
-outRast = inRast + '_rnd'
-roundRast(inRast, outRast)
-
 
 
 # end

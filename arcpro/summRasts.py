@@ -91,27 +91,28 @@ def summRasts(inFolder, outRast, rastExt, wdPattern="*", rastPattern="*", stat="
 
    areafinal.save(outRast)
    print('Done.')
-   return
+   return outRast
 
 
 def main():
    ## following creation of service areas in loopSAs, sum all the SA (service area) rasters
    ## these can be in multiple gdbs, use wdPattern to select them
-   # typs = ['t_ttrl','t_tlnd','a_agen','a_awct','a_aswm']
-   # for typ in typs:
-      typ = 't_ttrl'
-      stat = "SUM"
-      inFolder = r'L:\David\projects\rec_model_temp\serviceAreas_modelupdate_Feb2019'
-      gdb = 'raw_summary_scores_sum.gdb'
-      arcpy.CreateFileGDB_management(inFolder, gdb)
-      rtypes = ['popAdj', 'servArea']  # pattern for rasters to summarize
-      for rtype in rtypes:
-         rastPattern = '*' + rtype + '*'
-         outRast = os.path.join(inFolder, gdb, rtype + '_' + stat.lower() + '_' + typ + '_serviceAreas')
-         # full raster extent
-         rastExt = r'E:\RCL_cost_surfaces\Tiger_2018\cost_surfaces.gdb\costSurf_no_lah'
-         wdPattern = '*access_' + typ + '*'
-         summRasts(inFolder, outRast, rastExt, wdPattern, rastPattern, stat=stat, maxRasts=100)
+
+   inGDB = 'servArea_100ac_30min_public_lands_final_accessAreas.gdb'
+   stat = "SUM"
+   inFolder = r'E:\projects\rec_model\rec_model_processing\serviceAreas'
+   outGDB = 'serviceArea_summary.gdb'
+   arcpy.CreateFileGDB_management(inFolder, outGDB)
+   rtype = 'servArea'  # 'popAdj'   # pattern for rasters to summarize
+
+   rastPattern = '*' + rtype + '*'
+   outRast = os.path.join(inFolder, outGDB, stat.lower() + '_' + inGDB.replace('.gdb', ''))
+   # full raster extent
+   rastExt = r'E:\RCL_cost_surfaces\Tiger_2020\cost_surfaces.gdb\costSurf_no_lah'
+   wdPattern = inGDB
+   summRasts(inFolder, outRast, rastExt, wdPattern, rastPattern, stat=stat, maxRasts=100)
+   # arcpy.sa.Int(outRast).save(outRast + '_int')
+   # arcpy.BuildPyramidsandStatistics_management(inFolder + os.sep + outGDB)
 
 if __name__ == '__main__':
    main()
