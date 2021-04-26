@@ -215,6 +215,7 @@ outGDB = r'E:\projects\rec_model\rec_model_processing\serviceAreas_NA\recService
 # outGDB = r'E:\projects\rec_model\rec_model_processing\serviceAreas_NA\recCatchments_2021.gdb'
 # outGDB = r'E:\projects\rec_model\rec_model_processing\serviceAreas_NA\recWaterActivities_2021.gdb'
 # outGDB = r'E:\projects\rec_model\rec_model_processing\serviceAreas_NA\recTravelTime_2021.gdb'
+
 make_gdb(outGDB)
 arcpy.env.workspace = outGDB
 
@@ -232,7 +233,9 @@ arcpy.env.outputCoordinateSystem = net
 arcpy.env.overwriteOutput = True
 
 # Master access point layers
-ppa_pt = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb\access_points_t_lnd_20210409'
+# TODO: update with new layer: access_points_t_lnd_20210426
+# ppa_pt = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb\access_points_t_lnd_20210409'
+ppa_pt = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb\access_points_t_lnd_20210426'
 # ppa_pt = 'PPA_demo_accesspt'
 # Add field accgreen_acres to access points (used in catchments)
 # arcpy.CalculateField_management(ppa_pt, 'accgreen_acres', '!join_score!', field_type="DOUBLE")
@@ -242,7 +245,8 @@ aqua_pt = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb\access_poi
 # aqua_pt = 'water_accesspt'
 
 # PPA available area, for use in catchments
-ppa = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final_accessAreas'
+# ppa = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final_accessAreas'
+ppa = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb\public_lands_final_accessAreas'
 # ppa = 'PPA_demo_available_area'
 sec_ppa = arcpy.Select_analysis(ppa, 'secPPA', where_clause="accgreen_acres > 0 AND accgreen_acres < 25")[0]
 

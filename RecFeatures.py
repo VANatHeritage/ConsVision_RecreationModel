@@ -142,8 +142,8 @@ def addMetrics_lc(feats, feats_id, lc, imp=['21', '22'], water=[]):
 
 
 # Geodatabase for recreation datasets
-gdb = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb'
-roads0 = r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\all_subset'
+gdb = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb'
+roads0 = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422' # r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\all_subset'
 # Base geodatabase (NHD_Merged.gdb) are layers including all states within 50-mile buffer.
 nhd_flow = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_Flowline'
 nhd_areawtrb = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss'
@@ -176,7 +176,7 @@ q_mgd = "Access IN ('OPEN', 'OPEN WITH RESTRICTIONS') AND MATYPE NOT IN ('Boy Sc
 padus0 = r'L:\David\GIS_data\PAD\PAD_US2_1_GDB\PAD_US2_1.gdb\PADUS2_1Fee'
 q_padus = "Pub_Access IN ('OA', 'RA') AND Des_Tp <> 'MIL' AND (State_Nm <> 'VA' OR (Agg_Src = 'TPL_PADUS2_1_PADUS_DataDelivery_gdb' AND State_Nm = 'VA'))"
       # AND (Agg_Src = 'TPL_PADUS2_1_PADUS_DataDelivery_gdb' AND State_Nm = 'VA')" # VA-only
-# Second line is state-specific information. In VA, only want to add polygons from a specific source (TPL), likely not covered by the managed lands dataset
+# State-specific information for VA. In VA, only want to add polygons from a specific source (TPL), likely not covered by the managed lands dataset
 
 # standardized access field
 cb_acc = '''def fn(acc):
@@ -223,7 +223,7 @@ for q in qs:
    arcpy.CalculateField_management(lyr, 'ppa_type', q[1])
 del lyr
 arcpy.MultipartToSinglepart_management(publands, 'tmp_single')
-# Re-group by original ID, if within group distance
+# Re-group by original ID, if within group distance (adj to 300 feet)
 SpatialCluster_GrpFld('tmp_single', "150 Feet", 'group_orig', 'publands_fid', chain=False)
 flds = [a.name for a in arcpy.ListFields('tmp_single') if a.type != 'OID' and not a.name.startswith('Shape')]
 arcpy.PairwiseDissolve_analysis('tmp_single', publands + '_singlepart', flds)
@@ -271,69 +271,8 @@ calcFld(publands + '_final', "acres", '!shape.area@ACRES!', field_type="DOUBLE")
 arcpy.Delete_management(arcpy.ListFeatureClasses('tmp*'))
 arcpy.Delete_management(arcpy.ListTables('tmp*'))
 
-###
 
-print("Summarizing impervious surface in PPAs...")
-feats = publands + '_final_imp'
-arcpy.CopyFeatures_management(publands + '_final', feats)
-# feats = 'public_lands_final_SEVA'
-feats_id = 'group_id'
-# lc = r'L:\David\GIS_data\NLCD\nlcd_2016\nlcd_2016ed_LandCover_albers.gdb\lc_2016'
-lc = r'L:\David\GIS_data\VA_Landcover\mosaic\VA_landcover1m\va_landcover_1m.tif'
-imperv = r'L:\David\GIS_data\NLCD\nlcd_2016\nlcd_2016ed_Impervious_albers.gdb\imperv_2016'
-canopy = r'L:\David\GIS_data\NLCD\treecan2016.tif\treecan2016.tif'
-
-
-# TESTING ONLY
-# arcpy.env.extent = feats
-
-# Add impervious metrics to parks
-# addCoverMetrics(feats, feats_id, lc, imp=['21', '22'])  # impervious classes are 21/22 in VA Land Cover.
-addMetrics_nlcd(feats, feats_id, imperv, fld_prefix="imp")
-addMetrics_nlcd(feats, feats_id, canopy, fld_prefix="can")
-# Join fields from imp layer
-arcpy.JoinField_management(publands + '_final', feats_id, publands + '_final_imp', feats_id, ['notimp_acres', 'can_acres'])
-
-# coulddo: classification based on impervious/non-impervious area.
-# cb = '''def fn(ia, ip, na, np):
-#    if ip > 5 or (ip > 1 and ia > 5):
-#       if na > 20 and na + ia > 30:
-#          return 'Open space/Developed mix PPA'
-#       else:
-#          return 'Developed PPA'
-#    else:
-#       if na > 20 and na + ia > 30:
-#          return 'Open space or natural area PPA'
-#       else:
-#          return 'Small open space PPA'
-# '''
-# calc = 'fn(!imp_acres!, !imp_perc!, !notimp_acres!, !notimp_perc!)'
-# calcFld(feats, 'ppa_class', calc, code_block=cb)
-# # non-impervious cover
-# cb = '''def fn(na):
-#    if na is None or na < 5:
-#       return '0 - 5 green acres'
-#    elif na < 10:
-#       return '5 - 10 green acres'
-#    elif na < 20:
-#       return '10 - 20 green acres'
-#    elif na < 50:
-#       return '20 - 50 green acres'
-#    elif na < 100:
-#       return '50 - 100 green acres'
-#    elif na < 500:
-#       return '100 - 500 green acres'
-#    elif na < 1000:
-#       return '500 - 1000 green acres'
-#    else:
-#       return '1000+ green acres'
-# '''
-# calc = 'fn(!notimp_acres!)'
-# calcFld(feats, 'cover_class', calc, code_block=cb)
-
-###
-
-# Process trails data
+### Process trails data
 trails0 = r'E:\projects\rec_model\rec_datasets\rec_datasets_v2021.gdb\prep_VATrails_2021_20210317'
 trails_final = trails0 + '_final'
 '''
@@ -346,7 +285,8 @@ USE = 1
 
 # 1. Identify trails on/directly adjacent to auto roads (within 100 feet (30.5 meters) at all points along trail feature)
 trl_lyr = arcpy.MakeFeatureLayer_management(trails0, where_clause='use <> -1')
-rd_lyr = arcpy.MakeFeatureLayer_management(roads0, where_clause="mtfcc <> 'S1500'")  # exclude 4WD road/trails for this
+rd_lyr = arcpy.MakeFeatureLayer_management(roads0, where_clause="code in (5111, 5112, 5113, 5114, 5115, 5121, 5122, 5123, 5131, 5132, 5133, 5134, 5135, 5141, 5142, 5143, 5144, 5145, 5146, 5147)")
+                                           # where_clause="mtfcc <> 'S1500'")  # TIGER: exclude 4WD road/trails for this
 arcpy.SelectLayerByLocation_management(trl_lyr, 'WITHIN_A_DISTANCE', rd_lyr, "30.5 Meters")
 arcpy.GeneratePointsAlongLines_management(trl_lyr, 'trl_pts', 'DISTANCE', Distance='100 meters', Include_End_Points="END_POINTS")
 arcpy.GetCount_management('trl_pts')
@@ -391,48 +331,68 @@ arcpy.CalculateField_management(trails_final, 'join_score', '!Shape.length@MILES
 trails_group = os.path.basename(trails_final).replace('prep_', '') + '_group'
 SpatialCluster_GrpFld(trails_final, '150 Feet', 'group_id', chain=False)
 arcpy.PairwiseDissolve_analysis(trails_final, trails_group, 'group_id')
-PrepRecDataset(trails_group, boundary, r'E:\projects\rec_model\rec_datasets\rec_datasets_v2021.gdb', ['t_trl'])
+PrepRecDataset(trails_group, boundary, r'E:\projects\rec_model\rec_datasets\rec_datasets_v2021.gdb', ['Trail access (non-water)'])
 
 # clean up
 arcpy.Delete_management(arcpy.ListFeatureClasses('tmp*'))
 arcpy.Delete_management(arcpy.ListTables('tmp*'))
 
-###
 
-# Public lands, accessible area
+### PPA attribution
+# This section is for calculating various attributes of PPAs, including greenspace, available area, and available
+# greenspace. The master access points should have been already generated (steps 1 and 2 in that script), so that
+# those points can be used in the available area calculation.
+
+# PPA dataset
 publands_final = publands + '_final'
 feats_id = 'group_id'
 
-# Calculate accessible area (ROADS)
-roads_all = r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\all_centerline'
-# For road access in public lands: exclude limited access, other highways, ramps, private drives, and internal census use classes
-acc_lyr = arcpy.MakeFeatureLayer_management(roads_all, where_clause="MTFCC NOT IN ('S1100', 'S1200', 'S1630', 'S1740', 'S1750')")
-addMetrics_accessAcres(publands_final, acc_lyr, "rdacc", "300 Feet", internal=True)
+## Impervious/canopy coverage
+print("Summarizing impervious surface in PPAs...")
+feats = publands_final + '_imp'
+arcpy.CopyFeatures_management(publands_final, feats)
+feats_id = 'group_id'
+# lc = r'L:\David\GIS_data\NLCD\nlcd_2016\nlcd_2016ed_LandCover_albers.gdb\lc_2016'
+# lc = r'L:\David\GIS_data\VA_Landcover\mosaic\VA_landcover1m\va_landcover_1m.tif'
+imperv = r'L:\David\GIS_data\NLCD\nlcd_2016\nlcd_2016ed_Impervious_albers.gdb\imperv_2016'
+canopy = r'L:\David\GIS_data\NLCD\treecan2016.tif\treecan2016.tif'
 
-# OSM minor roads+trails data. These are likely to include roads/paths not in Tiger
-osm_all = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210421'  #  r'E:\projects\OSM\VA_50mile_20210329.gdb\VA_50mile_osm_line_nonstandard'
-acc_lyr = arcpy.MakeFeatureLayer_management(osm_all, where_clause="code NOT IN (5111, 5112, 5131, 5132)")  # just exclude motorway/trunk and their link roads
+# Add impervious and canopy metrics to parks
+# addCoverMetrics(feats, feats_id, lc, imp=['21', '22'])  # impervious classes are 21/22 in VA Land Cover.
+addMetrics_nlcd(feats, feats_id, imperv, fld_prefix="imp")
+addMetrics_nlcd(feats, feats_id, canopy, fld_prefix="can")
+
+# Join key fields back to PPA layer
+arcpy.JoinField_management(publands_final, feats_id, publands_final + '_imp', feats_id, ['notimp_acres', 'can_acres'])
+
+## Available area
+# ROADS-TIGER (deprecated:use OSM only)
+# roads_all = r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\all_centerline'
+# # For road access in public lands: exclude limited access, other highways, ramps, private drives, and internal census use classes
+# acc_lyr = arcpy.MakeFeatureLayer_management(roads_all, where_clause="MTFCC NOT IN ('S1100', 'S1200', 'S1630', 'S1740', 'S1750')")
+# addMetrics_accessAcres(publands_final, acc_lyr, "rdacc", "300 Feet", internal=True)
+# OSM roads+trails data.
+osm_all = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422'  #  r'E:\projects\OSM\VA_50mile_20210329.gdb\VA_50mile_osm_line_nonstandard'
+acc_lyr = arcpy.MakeFeatureLayer_management(osm_all, where_clause="code NOT IN (5111, 5112, 5131, 5132)")  # only exclude motorway/trunk and their link roads
 addMetrics_accessAcres(publands_final, osm_all, "osmacc", "300 Feet", internal=True)
-
-# Calculate accessible area (TRAILS)
+# TRAILS
 trails0 = r'E:\projects\rec_model\rec_datasets\rec_datasets_v2021.gdb\prep_VATrails_2021_20210317'
 # Note: use = -1 are non-existent (proposed) trails, so are the only ones excluded here.
 acc_lyr = arcpy.MakeFeatureLayer_management(trails0, where_clause="use <> -1")
 addMetrics_accessAcres(publands_final, acc_lyr, "trlacc", "300 Feet")
-
-# Calculate accessible area (ACCESS POINTS)
+# ACCESS POINTS
 accPts = r'E:\projects\rec_model\rec_datasets\rec_datasets_v2021.gdb\access_points'
+# NOTE: Local park inventory excluded here, since they don't seem to represent actual access points, rather centroids of parks.
 acc_lyr = arcpy.MakeFeatureLayer_management(accPts, where_clause="use = 1 AND src_table <> 'LocalParkInventory_2021_QC'")
 addMetrics_accessAcres(publands_final, acc_lyr, "ptacc", "300 Feet")
 
-# Calculate accessible area (TRAILS+INTERNAL TIGER+INTERNAL OSM+ACCESS POINTS). Uses already-created access features.
-# arcpy.Merge_management([publands_final + '_rdacc', publands_final + '_trlacc', publands_final + '_ptacc'], 'tmp_merge')
-arcpy.Merge_management([publands_final + '_rdacc', publands_final + '_osmacc', publands_final + '_trlacc', publands_final + '_ptacc'], 'tmp_merge')
-addMetrics_accessAcres(publands_final, 'tmp_merge', "rdtrlacc")
+# Calculate total accessible area (TRAILS+INTERNAL TIGER+INTERNAL OSM+ACCESS POINTS). Uses already-created access features.
+arcpy.Merge_management([publands_final + '_osmacc', publands_final + '_trlacc', publands_final + '_ptacc'], 'tmp_merge')
+addMetrics_accessAcres(publands_final, 'tmp_merge', fld_prefix="available")
 
-print('Calculating accessible non-impervious acres...')
+print('Calculating available non-impervious acres...')
 imperv = r'L:\David\GIS_data\NLCD\nlcd_2016\nlcd_2016ed_Impervious_albers.gdb\imperv_2016'
-feats = publands_final + '_rdtrlacc'
+feats = publands_final + '_available'
 # join to get group_id field and other attributes from PPAs.
 arcpy.JoinField_management(feats, 'FID_' + publands_final, publands_final, 'OBJECTID', ['group_id'])
 # coulddo: convert rdltrlacc to single-part?
@@ -440,9 +400,9 @@ addMetrics_nlcd(feats, "group_id", imperv, fld_prefix="impacc")
 # join metric back to original PPAs
 arcpy.DeleteField_management(publands_final, ['notimpacc_acres'])
 arcpy.JoinField_management(publands_final, feats_id, feats, feats_id, ['notimpacc_acres'])
-arcpy.AlterField_management(publands_final, 'notimpacc_acres', 'accgreen_acres', 'Accessible greenspace (acres)')
+arcpy.AlterField_management(publands_final, 'notimpacc_acres', 'accgreen_acres', 'Available greenspace (acres)')
 
-# update those with no non-imp access area (this could be because no access area exists, or it was too small to calculate zonal statistics).
+# Update those with NULL accgreen_acres. This could be because no access area exists, or PPA was too small to calculate zonal statistics.
 lyr = arcpy.MakeFeatureLayer_management(publands_final)
 arcpy.SelectLayerByAttribute_management(lyr, 'NEW_SELECTION', "accgreen_acres IS NULL")
 arcpy.CalculateField_management(lyr, "accgreen_acres", "min(!notimp_acres!, 5)")
@@ -451,18 +411,21 @@ del lyr
 nullToZero(publands_final, 'accgreen_acres')
 
 print('Making a layer with both accessible/non-accessible area...')
-arcpy.Identity_analysis(publands_final, publands_final + '_rdtrlacc', 'tmp_access', "ONLY_FID")
-arcpy.CalculateField_management('tmp_access', 'access', 'max(min(!FID_' + publands_final + '_rdtrlacc!, 1), 0)', field_type="SHORT")
+arcpy.Identity_analysis(publands_final, publands_final + '_available', 'tmp_access', "ONLY_FID")
+arcpy.CalculateField_management('tmp_access', 'access', 'max(min(!FID_' + publands_final + '_available!, 1), 0)', field_type="SHORT")
 ids = [str(a[0]) for a in arcpy.da.SearchCursor('tmp_access', [feats_id, 'access']) if a[1] == 1]
-# update non-accessible areas=0 for PPA with some accessible area
+# update accgreen_acres for the in-accessible areas (access = 0), for those PPA with some accessible area
 lyr = arcpy.MakeFeatureLayer_management('tmp_access', where_clause="access = 0 AND " + feats_id + " IN (" + ",".join(ids) + ")")
 arcpy.CalculateField_management(lyr, 'accgreen_acres', '0')
 del lyr
-arcpy.CopyFeatures_management(publands_final + '_accessAreas', publands_final + '_accessAreas_old')
-arcpy.PairwiseDissolve_analysis('tmp_access', publands_final + '_accessAreas', ['ppa_type', 'src_group_nm', 'src_group_type', 'group_id', 'access', 'rdtrlacc_acres', 'accgreen_acres'])
-arcpy.CalculateField_management(publands_final + '_accessAreas', 'rdtrlacc_acres', '!rdtrlacc_acres! * !access!')
-nullToZero(publands_final + '_accessAreas', 'rdtrlacc_acres')
+arcpy.PairwiseDissolve_analysis('tmp_access', publands_final + '_accessAreas', ['ppa_type', 'src_group_nm', 'src_group_type', 'group_id', 'access', 'available_acres', 'accgreen_acres'])
+arcpy.CalculateField_management(publands_final + '_accessAreas', 'available_acres', '!available_acres! * !access!')
+nullToZero(publands_final + '_accessAreas', 'available_acres')
 
+# create prepped dataset (can do here or in ArcPro Map).
+prep = PrepRecDataset(publands_final, boundary, r'E:\projects\rec_model\rec_datasets\rec_datasets_v2021.gdb', ["Land access"], 'src_group_nm')
+# Set join_score to acc_green_acres (default join_score is Shape_Area)
+arcpy.CalculateField_management(prep, 'join_score', '!accgreen_acres!')
 
 # clean up
 arcpy.Delete_management(arcpy.ListFeatureClasses('tmp*'))

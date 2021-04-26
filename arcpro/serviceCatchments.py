@@ -1,4 +1,6 @@
 """
+DEPRECATED: see networkServiceAreas.py
+
 servCats
 Created by: David Bucklin
 Created on: 2021-03-22
