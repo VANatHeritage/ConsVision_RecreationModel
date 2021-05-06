@@ -17,6 +17,8 @@
 #--------------------------------------------------------------------------------------
 
 # Import Helper module and functions
+import arcpy.sa
+
 from Helper import *
 from arcpy import env
 
@@ -188,7 +190,40 @@ def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir, popMask=No
    return outPop
 
 
-def makePopMask(feats, featBoundary, inRaster, outMask):
+def makePopMask_blocks(blocks, snapMask, out, clause="POP10 > 0"):
+   ''' Makes a feature and raster mask from census blocks, indicating where population CAN be allocated. Default is to
+   include only blocks where population is greater than 0.
+
+   :param blocks: Census blocks feature class
+   :param snapMask: Raster defining extent, snap, cellsize, mask
+   :param out: Output feature class. Rasterized mask will have use this name with a '_rast' suffix.
+   :param clause: clause used to select census blocks to include
+   :return: raster mask
+   '''
+
+   print('Buffering blocks by 10 meters...')
+   lyr = arcpy.MakeFeatureLayer_management(blocks, where_clause=clause)
+   # This is to ensure small blocks don't get left out of rasterized surface.
+   arcpy.PairwiseBuffer_analysis(lyr, 'tmp_buff', "10 Meters")
+   print('Dissolving blocks...')
+   arcpy.PairwiseDissolve_analysis('tmp_buff', out, multi_part="MULTI_PART")
+   arcpy.CalculateField_management(out, 'pop', 1, field_type="SHORT")
+   print('Created feature mask `' + out + '`.')
+
+   with arcpy.EnvManager(snapRaster=snapMask, cellSize=snapMask, mask=snapMask, outputCoordinateSystem=snapMask, extent=snapMask):
+      arcpy.PolygonToRaster_conversion(out, 'pop', 'tmp_rast', "MAXIMUM_AREA", cellsize=snapMask)
+      arcpy.sa.ExtractByMask('tmp_rast', snapMask).save(out + '_rast')
+   print('Created raster mask `' + out + '_rast' + '`.')
+
+   # Clean up
+   arcpy.DeleteField_management(out, 'pop')
+   arcpy.BuildPyramids_management(out + '_rast')
+   arcpy.Delete_management(['tmp_rast', 'tmp_buff'])
+
+   return out + '_rast'
+
+
+def makePopMask_custom(feats, featBoundary, inRaster, outMask):
    '''Makes a raster mask indicating where population CAN be allocated, from input features indicating where NOT
    to allocate population (e.g. water, parks). All area covered by features given to `feats` will become NoData
    in the final mask.
@@ -211,7 +246,7 @@ def makePopMask(feats, featBoundary, inRaster, outMask):
    lyr = arcpy.MakeFeatureLayer_management('popMask_feats')
    arcpy.SelectLayerByLocation_management(lyr, "INTERSECT", featBoundary)
    printMsg("Rasterizing features...")
-   arcpy.PolygonToRaster_conversion(lyr, value_field='rast', out_rasterdataset='popMask_rast0', cellsize=inRaster)
+   arcpy.PolygonToRaster_conversion(lyr, 'rast', 'popMask_rast0', cellsize=inRaster)
    printMsg("Creating raster mask...")
    arcpy.sa.SetNull(arcpy.sa.IsNull('popMask_rast0'), 1, "Value = 0").save(outMask)
    arcpy.BuildPyramids_management(outMask)
@@ -220,23 +255,43 @@ def makePopMask(feats, featBoundary, inRaster, outMask):
 
 
 def main():
+
    # Set up variables
    arcpy.env.workspace = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb'
    arcpy.env.overwriteOutput = True
+   snap = r'L:\David\projects\RCL_processing\RCL_processing.gdb\SnapRaster_albers_wgs84'
+   arcpy.env.outputCoordinateSystem = snap
+   arcpy.env.snapRaster = snap
+   arcpy.env.cellSize = snap
+   arcpy.env.extent = snap
 
+   # Deprecated: using census blocks instead
    # Make population mask. Features indicate exclusion areas for poplation. They will be NoData in the PopMask.
-   feats = [r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss',
-            r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final']
-   featBoundary = r'L:\David\projects\RCL_processing\RCL_processing.gdb\VA_Buff50mi_wgs84'
-   inRaster = r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\Roads_kdens_250_noZero'
-   popMask = 'population_mask_raster'
-   makePopMask(feats, featBoundary, inRaster, popMask)
+   # feats = [r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss',
+   #          r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final']
+   # featBoundary = r'L:\David\projects\RCL_processing\RCL_processing.gdb\VA_Buff50mi_wgs84'
+   # inRaster = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_kdens'  # r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\Roads_kdens_250_noZero'
+   # popMask = 'population_mask_raster'
+   # makePopMask_custom(feats, featBoundary, inRaster, popMask)
+
+   # Make population mask from census blocks (where population > 0)
+   popMask = 'census_blocks_populated'
+   blocks = r'L:\David\GIS_data\US_CENSUS_TIGER\Census_2010_block_pop\censusBlocks_2010.gdb\census_blocks'
+   makePopMask_blocks(blocks, snap, popMask)
+
+   # Make a buffered roads + populated census blocks mask. For use later as a Service Area clipping mask
+   roadBuff = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_qtrMileBuff'
+   arcpy.PairwiseIntersect_analysis([popMask, roadBuff], popMask + '_roadClip')
+   # make raster version (just combine the two existing raster versions; quicker than rasterizing features).
+   arcpy.sa.CellStatistics([popMask + '_rast', roadBuff + '_rast'], "MAXIMUM", "NODATA").save(popMask + '_roadClip_rast')
+   arcpy.BuildPyramids_management(popMask + '_roadClip_rast')
 
    # Make population density raster
    inBlocks = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\ACS_2015_2019_5yr_BG'  # r'H:\Working\ACS_2016\ACS_2016_5yr_BG.shp'
    fldPop = 'total_pop_clip'  # 'TotPop_clp'
-   inRoadDens = r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\Roads_kdens_250_noZero'  # r'H:\Working\RecMod\RecModProducts.gdb\Roads_kdens_250'
-   outPop = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2020'  # r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
+   # inRoadDens = r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\Roads_kdens_250_noZero'  # r'H:\Working\RecMod\RecModProducts.gdb\Roads_kdens_250'
+   inRoadDens = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_kdens'
+   outPop = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_OSM_2021_blkMask'  # r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
    tmpDir = r'D:\scratch\raster'  # r'H:\Working\TMP'
 
    # Specify function to run

@@ -2,7 +2,7 @@
 
 **DCR-DNH**
 
-**Purpose:** Overview of data sources and processing steps, for development of recreation access point datasets used in analyses for the Recreation Access Model
+**Purpose:** Overview of data sources and processing steps of recreation feature data, for development of recreation access point datasets used in Network Analyst travel analyses for the Recreation Access Model
 
 **Author**: David Bucklin
 
@@ -60,7 +60,7 @@ Water access datasets (various sources):
 - Chesapeake Bay: Public Access Sites (2009-2019) [(link)](https://data-chesbay.opendata.arcgis.com/datasets/public-access-sites-2009-2019)
 - North Carolina: BAA [(link)](https://www.nconemap.gov/datasets/ncwrc::baa) and PFA [(link)](https://www.nconemap.gov/datasets/ncwrc::pfa)
 - West Virginia: Boat Launches [(link)](https://wvgis.wvu.edu/data/dataset.php?ID=88)  and Public Fishing Areas [(link)](https://wvgis.wvu.edu/data/dataset.php?ID=194)
-- Tennessee: Boating Ramps & Access [(link)](https://www.tn.gov/twra/boating/ramps-and-access.html)
+- Tennessee: Boating Ramps & Fishing Access [(link)](https://www.tn.gov/twra/boating/ramps-and-access.html)
 - Kentucky: Fishing access sites [(link)](https://kygeoportal.ky.gov/geoportal/catalog/search/resource/details.page?uuid=%7BAF984DFA-6682-44FA-A9C0-BED216E1989D%7D)
 
 ### Road/path centerline data
@@ -68,7 +68,7 @@ Water access datasets (various sources):
 From OpenStreetMap: 
   - roads data from [Geofabrik](http://download.geofabrik.de/north-america/us.html), downloaded as shapefile for each state in the study area.
 
-Road/path segments were assigned a speed (SPEED_MPH) and travel time in minute (TT_MIN). A Network Dataset was created from this dataset, using TT_MIN as the accumulation attribute. This dataset was used for all travel time-based analyses.
+Road/path segments were assigned a speed (SPEED_MPH) and travel time in minutes (TT_MIN). A Network Dataset was created from this dataset, using TT_MIN as the accumulation attribute. This dataset was used for all travel analyses.
 
 Road/path data were also used for:
   - calculation of available area within PPAs
@@ -83,12 +83,12 @@ From the National Hydrography Dataset (NHD), high resolution (1:24,000):
     - definition query: `FTYPE IN (445, 460, 312 , 364, 336)`: BayInlet, Foreshore, SeaOcean, StreamRiver; CanalDitch
   - NHDWaterbody
     - definition query: `FTYPE IN (390, 436, 493)`: LakePond, Reservoir, Estuary
-- NHDFlowline
-    - definition query: `FTYPE IN (460, 558 ,336)`: ArtificialPath, StreamRiver, CanalDitch
+- NHDFlowline (no query used)
 
 Aquatic features were used for:
+
 - erasing open water areas from PPAs (NHD_AreaWaterbody only)
-- QA/QC of water access points
+- QA/QC of water access points: water access points needed to be within 0.25 miles of an aquatic feature
   
 ## Recreation Data processing
 
@@ -96,12 +96,16 @@ Aquatic features were used for:
 
 Some polygon and line datasets are considered **Recreational Features**, and generally required some pre-processing prior to use in the the model. These steps are included in the script file [RecFeatures.py](../RecFeatures.py).
 
-**public_lands_final**: This dataset represents all parks and protected areas (PPAs) with public access. It combines data from the two original protected areas datasets, and is planarized (flattened), dissolving boundaries between overlapping PPAs from the original datasets. Polygons in the dataset are attributed with a unique **group_id**, and inherits the name of the largest source polygon from the original dataset. This dataset is the starting point for all subsequent PPA analyses. For each polygon, the following attributes were calculated (using acres as the area unit):
+#### Public lands data (PPA) processing
+
+Publicly-accessible Parks and Protected Areas (PPA) were combined from the two original protected areas datasets (VA Conservation Lands database and the Protected Areas Database). Using designation type attributes, polygons were categorized as either parks (1) or other protected areas (2). They were then planarized (flattened), dissolving boundaries between overlapping PPAs of the same category. Polygons in the dataset are attributed with unique **group_id**, and assigned the name and designation of their largest source polygon from the original dataset. The final dataset (**public_lands_final**) is the starting point for all subsequent PPA analyses. 
+
+For each polygon, the following attributes were calculated (all area values are calculated in acres):
 
   - Total area
   - Greenspace area
   - Available area
-  - Available greenspace
+  - Available greenspace area
 
 ### Standardizing input datasets
 
@@ -109,28 +113,28 @@ Each recreation dataset was run through the [PrepRecDataset](../PrepRecDataset.p
 
 > The [PrepRecDataset](../PrepRecDataset.py) function can be imported into ArcGIS Pro as a script tool.
 
-Six fields describing the type(s) of recreation available at the feature or access point were added, and attributed with 1 (access for that type) or 0 (no access for that type):
+Six fields describing the types of recreation available at the recreation feature were added, and attributed with 1 (access for that type) or 0 (no access for that type):
 
-- **a_awct** : watercraft (motorboat, kayak, canoe, etc.) access
-- **a_afsh**: fishing access 
-- **a_aswm**: swimming access (*pools not included*)
-- **a_agen**: un-specified water access
-- **t_ttrl**: terrestrial trails access
-- **t_tlnd**: public land access
+- **a_wct** : watercraft (motorboat, kayak, canoe, etc.) access
+- **a_fsh**: fishing access 
+- **a_swm**: swimming access
+- **a_gen**: unspecified water access
+- **t_trl**: terrestrial trails access
+- **t_lnd**: public land (PPA) access
 
-If all features in a given dataset represented access for a given type (e.g. trail access for trail features, fishing access for fishing piers), the attributes were assigned during the preparation
+If **all features in a given dataset represented access for a given type** (e.g. trail access for trail features, fishing access for fishing piers), the attributes were assigned during the preparation. Otherwise, assignment was done during the access point workflow (next section).
 
 ### Making access point datasets
 
 The script file [AccessPoints.py](../AccessPoints.py)  was used to combine all recreation datasets into a 'master' access points dataset. Key aspects of this workflow include:
-  - assignment of access types for subsets of features in a given recreation dataset, based on the dataset's attributes
-  - assignment of access types to access points, based on proximity to recreation features datasets
-  - generation of one access point per un-associated recreation feature, using intersection or proximity to roads to determine placement of the point
-  - association of access points with PPAs, where the 'join_' attributes of access points are updated with attributes from PPAs.
-  - creating output access point datasets for usage as Facilities in network analyses, which include only points for given access type(s). For the 2021 model, two datasets were generated:
+  - assignment of access types for subsets of features in a given recreation dataset
+  - assignment of access types based on proximity to recreation feature datasets (e.g., a trailhead within 300 feet of a fishing lake or stream would be assigned fishing access)
+  - generation of one access point per unassociated recreation feature, using intersection or proximity to roads to determine placement of the point
+  - association of access points with PPAs, where the 'join_' attributes of access points are updated with attributes from PPAs
+  - creating access point datasets for usage as Facilities in Network Analysis, which include only points for given access type(s). For the 2021 model, two datasets were generated:
     1. access points for watercraft, fishing, or swimming access. A `group_id` field was added, where all points within 0.25 miles of one another are assigned the same value.
-    2. access points for PPAs (t_lnd = 1). The `ppa_group_id` field is inherited from the `group_id` field of **public_lands_final**, and is used for grouping in the network analyses.
+    2. access points for PPAs (t_lnd = 1). The `ppa_group_id` field is added the access points, inherited from the `group_id` field of **public_lands_final**, and is used for grouping in the network analyses.
 
 ------
 
-*Last updated: 2021-04-26*
+*Last updated: 2021-04-27*

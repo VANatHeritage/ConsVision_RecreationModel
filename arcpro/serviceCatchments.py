@@ -204,7 +204,7 @@ def servCatPressureAq(servCatFeat, fldPop="pop_total", fldAcc="access", per=1000
 
 costRast = r'E:\RCL_cost_surfaces\Tiger_2020\cost_surfaces.gdb\costSurf_no_lah'
 costRastWalk = r'E:\RCL_cost_surfaces\Tiger_2020\cost_surfaces.gdb\costSurf_walk'
-popRast = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2020'
+popRast = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_OSM_2021rd'
 impRast = r'L:\David\GIS_data\NLCD\nlcd_2016\nlcd_2016ed_Impervious_albers.gdb\imperv_2016'
 
 # Envs

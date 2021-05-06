@@ -209,7 +209,7 @@ def servCatStats(servCatFeat, grpFld, popRast, secPPA=None, impRast=None):
       arcpy.AlterField_management('tmp_notimp0', 'SUM_' + fld_prefix + "accgreen_acres", fld_prefix + "accgreen_acres", clear_field_alias=True)
 
       # combine notimp stats from access=1 and access=0 areas
-      arcpy.Merge_management(['tmp_notimp0', 'tmp_notimp1'], "tmp_notimp")
+      arcpy.Merge_management(['tmp_notimp1', 'tmp_notimp0'], "tmp_notimp")
       # calculate statistics by-servCat
       flds = [a.name for a in arcpy.ListFields('tmp_notimp') if a.name.startswith(fld_prefix) and not a.name.endswith('_perc')]
       [nullToZero('tmp_notimp', f) for f in flds]
@@ -217,17 +217,16 @@ def servCatStats(servCatFeat, grpFld, popRast, secPPA=None, impRast=None):
       [arcpy.AlterField_management('tmp_notimp_stats', 'SUM_' + f, f, clear_field_alias=True) for f in flds]
       # join to tab
       arcpy.JoinField_management(tab, grpFld, 'tmp_notimp_stats', grpFld, flds)
-      flds2 = ['pop_total'] + flds
+      flds2 = ['pop_total', 'sec_accgreen_acres']
    else:
       # only thing to join is population
       flds2 = ['pop_total']
 
    print('Joining fields to servCats...')
-
    arcpy.DeleteField_management(servCatFeat, flds2)
    arcpy.JoinField_management(servCatFeat, grpFld, tab, grpFld, flds2)
    [nullToZero(servCatFeat, f) for f in flds2]
-   arcpy.Delete_management(tab)
+   # arcpy.Delete_management(tab)
 
    if secPPA:
       print('Calculating servCat green acres...')
@@ -241,10 +240,10 @@ def servCatPressurePPA(servCatFeat, agaptMin=5, fldPop="pop_total", fldAc="accgr
 
    if prefix != "":
       ag = prefix + '_agapt'
-      ppfld = prefix + '_park_pressure_min' + str(agaptMin)
+      ppfld = prefix + '_rec_pressure'  # _min' + str(agaptMin)
    else:
       ag = 'agapt'
-      ppfld = 'park_pressure_min' + str(agaptMin)
+      ppfld = 'rec_pressure'  # _min' + str(agaptMin)
    print('Calculating `' + ag + '` and `' + ppfld + '` fields...')
    arcpy.DeleteField_management(servCatFeat, [ag, ppfld])
    cb = '''def fn(pop, ac):
@@ -269,6 +268,7 @@ def servCatPressurePPA(servCatFeat, agaptMin=5, fldPop="pop_total", fldAc="accgr
    calc = 'fn(!' + ag + '!, ' + str(agaptMin) + ')'
    arcpy.CalculateField_management(servCatFeat, ppfld, calc, code_block=cb, field_type="LONG")
 
+   fldAlias(servCatFeat)
    return servCatFeat
 
 
@@ -290,8 +290,46 @@ def servCatPressureAq(servCatFeat, fldPop="pop_total", fldAcc="access", per=1000
    calc = 'fn(!' + fldPop + '!, !' + fldAcc + '!,' + str(mid) + ')'
    arcpy.CalculateField_management(servCatFeat, pfld, calc, code_block=cb, field_type="LONG")
 
+   fldAlias(servCatFeat)
    return servCatFeat
 
 
+def fldAlias(inTab):
+
+   print('Updating table aliases...')
+   # Create a master list of fields with alias to apply
+   fa = {
+      "src_table": "Source feature dataset",
+      "src_fid": "Source feature OID",
+      "src_name": "Source feature name",
+      "a_wct": "Watercraft access",
+      "a_fsh": "Fishing access",
+      "a_swm": "Swimming access",
+      "a_gen": "Unspecified aquatic access",
+      "t_trl": "Trail access",
+      "t_lnd": "Public land access",
+      "use": "Model use flag",
+      "use_why": "Model use comment",
+      "join_table": "Join table",
+      "join_fid": "Join PPA OID",
+      "join_name": "Join PPA name",
+      "join_score": "Join PPA score",
+      "focal_src_table": "Focal source feature dataset",
+      "focal_src_name": "Focal source feature name",
+      "focal_join_name": "Focal join PPA name",
+      "accgreen_acres": "AG (acres)",
+      "focal_accgreen_acres": "Focal PPA AG (acres)",
+      "sec_accgreen_acres": "Secondary PPA AG (acres)",
+      "access": "Catchment/gap flag",
+      "group_id": "Feature group ID",
+      "ppa_group_id": "PPA group ID",
+      "pop_total": "Population",
+      "agapt": "AG (acres) per 1000",
+      "rec_pressure": "Recreation pressure"
+   }
+   fld = [a.name for a in arcpy.ListFields(inTab) if a.name in fa.keys()]
+   for f in fld:
+      arcpy.AlterField_management(inTab, f, new_field_alias=fa[f])
+   return inTab
 
 # end
