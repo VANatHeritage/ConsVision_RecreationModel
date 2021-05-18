@@ -2,7 +2,7 @@
 # DistribPop.py
 # Version:  ArcGIS 10.3.1 / Python 2.7.8
 # Creation Date: 2018-10-03
-# Last Edit: 2021-02-02
+# Last Edit: 2021-05-18
 # Creator:  Kirsten R. Hazler
 #
 # Summary:
@@ -17,10 +17,8 @@
 #--------------------------------------------------------------------------------------
 
 # Import Helper module and functions
-import arcpy.sa
 
 from Helper import *
-from arcpy import env
 
 
 def DistribPop_nlcd(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmpDir):
@@ -190,7 +188,7 @@ def DistribPop_roadDens(inBlocks, fldPop, inRoadDens, outPop, tmpDir, popMask=No
    return outPop
 
 
-def makePopMask_blocks(blocks, snapMask, out, clause="POP10 > 0"):
+def makePopMask_blocks(blocks, snapMask, out, clause="POP10 > 0", erase=None):
    ''' Makes a feature and raster mask from census blocks, indicating where population CAN be allocated. Default is to
    include only blocks where population is greater than 0.
 
@@ -201,12 +199,17 @@ def makePopMask_blocks(blocks, snapMask, out, clause="POP10 > 0"):
    :return: raster mask
    '''
 
-   print('Buffering blocks by 10 meters...')
    lyr = arcpy.MakeFeatureLayer_management(blocks, where_clause=clause)
-   # This is to ensure small blocks don't get left out of rasterized surface.
+   print('Buffering blocks by 10 meters...')
+   # This is to ensure small blocks/strips don't get left out of rasterized surface (30 meter pixels)
    arcpy.PairwiseBuffer_analysis(lyr, 'tmp_buff', "10 Meters")
    print('Dissolving blocks...')
-   arcpy.PairwiseDissolve_analysis('tmp_buff', out, multi_part="MULTI_PART")
+   if erase is not None:
+      arcpy.PairwiseDissolve_analysis('tmp_buff', 'tmp_diss', multi_part="MULTI_PART")
+      print('Erasing features...')
+      arcpy.Erase_analysis('tmp_diss', erase, out)
+   else:
+      arcpy.PairwiseDissolve_analysis('tmp_buff', out, multi_part="MULTI_PART")
    arcpy.CalculateField_management(out, 'pop', 1, field_type="SHORT")
    print('Created feature mask `' + out + '`.')
 
@@ -216,7 +219,7 @@ def makePopMask_blocks(blocks, snapMask, out, clause="POP10 > 0"):
    print('Created raster mask `' + out + '_rast' + '`.')
 
    # Clean up
-   arcpy.DeleteField_management(out, 'pop')
+   # arcpy.DeleteField_management(out, 'pop')
    arcpy.BuildPyramids_management(out + '_rast')
    arcpy.Delete_management(['tmp_rast', 'tmp_buff'])
 
@@ -265,7 +268,7 @@ def main():
    arcpy.env.cellSize = snap
    arcpy.env.extent = snap
 
-   # Deprecated: using census blocks instead
+   # Deprecated: using census blocks instead. Leaving code as example of custom mask.
    # Make population mask. Features indicate exclusion areas for poplation. They will be NoData in the PopMask.
    # feats = [r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss',
    #          r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final']
@@ -275,16 +278,9 @@ def main():
    # makePopMask_custom(feats, featBoundary, inRaster, popMask)
 
    # Make population mask from census blocks (where population > 0)
-   popMask = 'census_blocks_populated'
    blocks = r'L:\David\GIS_data\US_CENSUS_TIGER\Census_2010_block_pop\censusBlocks_2010.gdb\census_blocks'
-   makePopMask_blocks(blocks, snap, popMask)
-
-   # Make a buffered roads + populated census blocks mask. For use later as a Service Area clipping mask
-   roadBuff = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_qtrMileBuff'
-   arcpy.PairwiseIntersect_analysis([popMask, roadBuff], popMask + '_roadClip')
-   # make raster version (just combine the two existing raster versions; quicker than rasterizing features).
-   arcpy.sa.CellStatistics([popMask + '_rast', roadBuff + '_rast'], "MAXIMUM", "NODATA").save(popMask + '_roadClip_rast')
-   arcpy.BuildPyramids_management(popMask + '_roadClip_rast')
+   ppa = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb\public_lands_final'
+   popMask = makePopMask_blocks(blocks, snap, 'census_blocks_populated', erase=ppa)
 
    # Make population density raster
    inBlocks = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\ACS_2015_2019_5yr_BG'  # r'H:\Working\ACS_2016\ACS_2016_5yr_BG.shp'

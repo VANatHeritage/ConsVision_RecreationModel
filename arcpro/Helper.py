@@ -169,7 +169,7 @@ def SpatialCluster_GrpFld(inFeats, searchDist, fldGrpID='grpID', fldGrpBy=None, 
    return inFeats
 
 
-def servCatStats(servCatFeat, grpFld, popRast, secPPA=None, impRast=None):
+def servCatStats(servCatFeat, grpFld, popRast, secPPA=None, impRast=None, ppa_access="ppa_access"):
 
    # servCatFeat='servCat'
    # grpFld = "servCat_group_id"
@@ -183,13 +183,13 @@ def servCatStats(servCatFeat, grpFld, popRast, secPPA=None, impRast=None):
    if secPPA:
       print('Intersecting secondary PPAs with servCats...')
       arcpy.CalculateField_management(secPPA, 'ShapeArea_secPPA', '!Shape_Area!', field_type="FLOAT")
-      arcpy.PairwiseIntersect_analysis([servCatFeat, secPPA], 'tmp_sec0')
+      arcpy.PairwiseIntersect_analysis([secPPA, servCatFeat], 'tmp_sec0')
       arcpy.CalculateField_management('tmp_sec0', 'propOrig', "!Shape_Area! / !ShapeArea_secPPA!", field_type="FLOAT")
 
       print('Calculating impervious statistics for secondary PPAs...')
       fld_prefix = 'sec_'
-      # Calculate zonal stats for access areas with access=1, by servCat
-      arcpy.Select_analysis('tmp_sec0', 'tmp_sel', "access = 1")
+      # Calculate zonal stats for access areas with ppa_access=1, by servCat
+      arcpy.Select_analysis('tmp_sec0', 'tmp_sel', ppa_access + " = 1")
       arcpy.PairwiseDissolve_analysis('tmp_sel', 'tmp_notimp1', [grpFld])
       arcpy.CalculateField_management('tmp_notimp1', fld_prefix + 'acres', '!Shape_Area! / 4046.856', field_type="FLOAT")
       arcpy.sa.ZonalStatisticsAsTable('tmp_notimp1', grpFld, impRast, 'tmp_zs', "DATA", "MEAN")
@@ -201,14 +201,14 @@ def servCatStats(servCatFeat, grpFld, popRast, secPPA=None, impRast=None):
       arcpy.CalculateField_management('tmp_notimp1', fld_prefix + 'accgreen_acres', calc, field_type="FLOAT")
       calc = '100 - !' + fld_prefix + 'impacc_perc!'
       arcpy.CalculateField_management('tmp_notimp1', fld_prefix + 'notimpacc_perc', calc, field_type="FLOAT")
-      # Calculates secondary accgreen_acres for access=0 (proportional to amount of PPA intersected).
+      # Calculates secondary accgreen_acres for ppa_access=0 (proportional to amount of PPA intersected).
       # Then dissolve to servCat, summarizing total notimpacres.
-      arcpy.Select_analysis('tmp_sec0', 'tmp_sel', "access = 0")
+      arcpy.Select_analysis('tmp_sec0', 'tmp_sel', ppa_access + " = 0")
       arcpy.CalculateField_management('tmp_sel', fld_prefix + 'accgreen_acres', '!accgreen_acres! * !propOrig!', field_type="FLOAT")
       arcpy.PairwiseDissolve_analysis('tmp_sel', 'tmp_notimp0', [grpFld], statistics_fields=[[fld_prefix + "accgreen_acres", "SUM"]])
       arcpy.AlterField_management('tmp_notimp0', 'SUM_' + fld_prefix + "accgreen_acres", fld_prefix + "accgreen_acres", clear_field_alias=True)
 
-      # combine notimp stats from access=1 and access=0 areas
+      # combine notimp stats from ppa_access=1 and ppa_access=0 areas
       arcpy.Merge_management(['tmp_notimp1', 'tmp_notimp0'], "tmp_notimp")
       # calculate statistics by-servCat
       flds = [a.name for a in arcpy.ListFields('tmp_notimp') if a.name.startswith(fld_prefix) and not a.name.endswith('_perc')]
@@ -226,7 +226,6 @@ def servCatStats(servCatFeat, grpFld, popRast, secPPA=None, impRast=None):
    arcpy.DeleteField_management(servCatFeat, flds2)
    arcpy.JoinField_management(servCatFeat, grpFld, tab, grpFld, flds2)
    [nullToZero(servCatFeat, f) for f in flds2]
-   # arcpy.Delete_management(tab)
 
    if secPPA:
       print('Calculating servCat green acres...')
@@ -236,16 +235,14 @@ def servCatStats(servCatFeat, grpFld, popRast, secPPA=None, impRast=None):
    return servCatFeat
 
 
-def servCatPressurePPA(servCatFeat, agaptMin=5, fldPop="pop_total", fldAc="accgreen_acres", prefix=""):
+def agapt(servCatFeat, fldPop="pop_total", fldAc="accgreen_acres", prefix=""):
 
    if prefix != "":
       ag = prefix + '_agapt'
-      ppfld = prefix + '_rec_pressure'  # _min' + str(agaptMin)
    else:
       ag = 'agapt'
-      ppfld = 'rec_pressure'  # _min' + str(agaptMin)
-   print('Calculating `' + ag + '` and `' + ppfld + '` fields...')
-   arcpy.DeleteField_management(servCatFeat, [ag, ppfld])
+   print('Calculating `' + ag + '` field...')
+   arcpy.DeleteField_management(servCatFeat, [ag])
    cb = '''def fn(pop, ac):
       if ac == 0:
          return 0
@@ -256,39 +253,27 @@ def servCatPressurePPA(servCatFeat, agaptMin=5, fldPop="pop_total", fldAc="accgr
             return None'''
    calc = 'fn(!' + fldPop + '!, !' + fldAc + '!)'
    arcpy.CalculateField_management(servCatFeat, ag, calc, code_block=cb, field_type="FLOAT")
-   cb = '''def fn(x, n):
-      if x is not None:
-         y = n / x
-         if y > 1:
-            return 100
-         else:
-            return round(y * 100)
-      else:
-         return None'''
-   calc = 'fn(!' + ag + '!, ' + str(agaptMin) + ')'
-   arcpy.CalculateField_management(servCatFeat, ppfld, calc, code_block=cb, field_type="LONG")
 
-   fldAlias(servCatFeat)
    return servCatFeat
 
 
-def servCatPressureAq(servCatFeat, fldPop="pop_total", fldAcc="access", per=10000):
-   # Add a pressure score: Aquatic Recreation Pressure = MIN[100, ((Pop in catchment)/200)]
-   # fldAcc is binary 1/0 indicating access or not. If 0, pressure score value will be Null.
-   # per is a population where the pressure score be 50 (e.g. 1 access point per 10,000 persons in the catchment, will
+def servCatPressure(servCatFeat, fldPop="pop_total", fldScore="access", per=10000, fldPressure="rec_pressure"):
+   # Note: 'per' is the number of persons per unit of fldScore, which denotes the middle of the scoring range (50).
 
-   # calculate midpoint score (50)
-   mid = str(per/50)
-   pfld = 'rec_pressure'
-   print('Calculating `' + pfld + '`...')
-   arcpy.DeleteField_management(servCatFeat, [pfld])
-   cb = '''def fn(pop, acc, mid):
-      if acc == 0:
-         return None
-      else:
-         return round(min(100, pop / mid))'''
-   calc = 'fn(!' + fldPop + '!, !' + fldAcc + '!,' + str(mid) + ')'
-   arcpy.CalculateField_management(servCatFeat, pfld, calc, code_block=cb, field_type="LONG")
+   print('Calculating `' + fldPressure + '`...')
+   arcpy.DeleteField_management(servCatFeat, [fldPressure])
+
+   if fldScore == 'access':
+      # aquatic access point adjustment
+      adj = str(0.01)
+   else:
+      # PPA adjustment
+      adj = str(1)
+
+   # calculate pressure
+   mid = str((1/per) * 50)
+   calc = "min(100, round(" + mid + " * !" + fldPop + "! / (" + adj + " + !" + fldScore + "!)))"
+   arcpy.CalculateField_management(servCatFeat, fldPressure, calc, field_type="LONG")
 
    fldAlias(servCatFeat)
    return servCatFeat

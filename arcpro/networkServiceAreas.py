@@ -14,27 +14,19 @@ Author: David Bucklin
 General usage notes:
 - For service areas and catchments, one service area or catchment is developed for each unique value in facil_group.
 Fields listed in joinatt will be joined to the output service areas or catchments. If there are multiple points
-in the facil_group, note that only one of the facilities' attributes is actually joined.
+in the facil_group, note that only one of the facilities' attributes can be joined to the single catchment feature.
 - facil_group is not used for networkTravelToNearest, as all facilities are considered one 'group' in that analysis.
 - In networkServiceAreas, processing time is greatly increased as minutes limit increases. Solving and counting
 overlaps can be very slow for these cases.
 - In networkTravelToNearest, increasing the number of breaks will greatly increase processing time, especially if the
-upper limit is high.
+upper time limit is high.
 - Tried out exclude_sources_from_polygon_generation=["Roads_Hwy"]. When using this and generating polygons with
-geometry_at_overlap="SPLIT", there are errors in some polygons (polygon have extreme  geometry errors). Since this
-cannot be used in the catchments, abandoned use of this option.
-
-Decide: Test different poly_trim levels. essentially a buffer around network roads. Default is 100 meters in ArcGIS. Try out:
-   - 300 feet
-   - 500 feet
-   - 1000 feet. This is equivalent to how far out population is distributed around roads using kdens approach.
-   - 0.25 Miles (1320 feet) : Think this is best option. Using this.
-   - 0.5 Miles (2640 feet)
+geometry_at_overlap="SPLIT", there are errors in some polygons (polygon have extreme geometry errors). Because of this,
+abandoned use of this option.
 '''
 
-
-from Helper import *  # python command prompt: propy.bat E:\git\ConsVision_RecreationModel\arcpro\networkServiceAreas.py
-# from arcpro.Helper import *  # for interactive usage
+# from Helper import *  # python command prompt: propy.bat E:\git\ConsVision_RecreationModel\arcpro\networkServiceAreas.py
+from arcpro.Helper import *   # for interactive usage
 arcpy.CheckOutExtension("network")
 
 # Default search criteria for OSM roads.
@@ -49,7 +41,7 @@ search_att = {
 def networkServiceAreas(net, facil, facil_group, outSA, joinatt=['src_table', 'src_name', 'join_name', 'accgreen_acres'],
                         minutes=[30], poly_trim="0.3 Miles", dist_from_roads="1 Mile",
                         search_criteria=search_att["search_criteria"], search_query=search_att["search_query"],
-                        rastTemplate=None, travTypeName="Drive"):
+                        rastTemplate=None, travTypeName="Drive", travDir="TO_FACILITIES"):
    '''
    Generate individual service areas by facil_group, and count overlaps.
    :param net: Network dataset
@@ -66,7 +58,7 @@ def networkServiceAreas(net, facil, facil_group, outSA, joinatt=['src_table', 's
    '''
    print('Making analysis layer at ' + Hms() + '...')
    # coulddo: add dummy +5 minute distance ring? Update: no, doesn't seem to change much.
-   arcpy.MakeServiceAreaAnalysisLayer_na(net, "ServiceAreas", travTypeName, "TO_FACILITIES", cutoffs=minutes,
+   arcpy.MakeServiceAreaAnalysisLayer_na(net, "ServiceAreas", travTypeName, travDir, cutoffs=minutes,
                                          output_type="POLYGONS", polygon_detail="STANDARD",
                                          geometry_at_overlaps="OVERLAP", geometry_at_cutoffs="RINGS",
                                          polygon_trim_distance=poly_trim)
@@ -108,7 +100,7 @@ def networkServiceAreas(net, facil, facil_group, outSA, joinatt=['src_table', 's
 def networkCatchments(net, facil, facil_group, outSA, boundary, joinatt=['src_table', 'src_name', 'join_name', 'accgreen_acres'],
                       minutes=30, poly_trim="0.3 Miles", dist_from_roads="1 Mile",
                       search_criteria=search_att["search_criteria"], search_query=search_att["search_query"],
-                      travTypeName="Drive"):
+                      travTypeName="Drive", travDir="TO_FACILITIES"):
    '''
    Generate non-overlapping service catchments, by facil_group.
    :param net: Network dataset
@@ -127,7 +119,7 @@ def networkCatchments(net, facil, facil_group, outSA, boundary, joinatt=['src_ta
    # Search_criteria is used to only locate points on certain road types (default on only Roads_Local).
    # Search_query is further used to subset the road types where points can be located (default only driveable roads).
    print('Making analysis layer at ' + Hms() + '...')
-   arcpy.MakeServiceAreaAnalysisLayer_na(net, "ServiceAreas", travTypeName, "TO_FACILITIES", cutoffs=[minutes],
+   arcpy.MakeServiceAreaAnalysisLayer_na(net, "ServiceAreas", travTypeName, travDir, cutoffs=[minutes],
                                          output_type="POLYGONS", polygon_detail="STANDARD",
                                          geometry_at_overlaps="SPLIT", geometry_at_cutoffs="RINGS",
                                          polygon_trim_distance=poly_trim)
@@ -154,6 +146,7 @@ def networkCatchments(net, facil, facil_group, outSA, boundary, joinatt=['src_ta
    arcpy.Clip_analysis(outSA + '_orig', boundary, 'tmp_cat')
    arcpy.Erase_analysis(boundary, 'tmp_cat', 'gaps0')
    if arcpy.GetCount_management('gaps0')[0] != '0':
+      arcpy.RepairGeometry_management("gaps0", "DELETE_NULL", "ESRI")
       arcpy.MultipartToSinglepart_management('gaps0', 'gaps1')
       # Add incrementing ID (negative value)
       arcpy.AddField_management('gaps1', facil_group, 'LONG')
@@ -195,7 +188,7 @@ def networkCatchments(net, facil, facil_group, outSA, boundary, joinatt=['src_ta
    # Clean up (all) service area datasets in current GDB
    ls = arcpy.ListDatasets('ServiceArea*')
    arcpy.Delete_management(ls)
-   # arcpy.Delete_management(['gaps0', 'gaps1'])
+   arcpy.Delete_management(['gaps0'])
 
    return outSA
 
@@ -203,7 +196,7 @@ def networkCatchments(net, facil, facil_group, outSA, boundary, joinatt=['src_ta
 def networkTravelToNearest(net, facil, outSA, minutes=list(range(5, 121, 5)),
                            poly_trim="0.3 Miles", dist_from_roads="1 Mile",
                            search_criteria=search_att["search_criteria"], search_query=search_att["search_query"],
-                           rastTemplate=None, travTypeName="Drive"):
+                           rastTemplate=None, travTypeName="Drive", travDir="TO_FACILITIES"):
    '''
    Calculate travel time to nearest facility. No grouping in this analysis.
    :param net: Network dataset
@@ -220,7 +213,7 @@ def networkTravelToNearest(net, facil, outSA, minutes=list(range(5, 121, 5)),
    # Search_criteria is used to only locate points on certain road types (default on only Roads_Local).
    # Search_query is further used to subset the road types where points can be located (default only driveable roads).
    print('Making analysis layer at ' + Hms() + '...')
-   arcpy.MakeServiceAreaAnalysisLayer_na(net, "ServiceAreas", travTypeName, "TO_FACILITIES", cutoffs=minutes,
+   arcpy.MakeServiceAreaAnalysisLayer_na(net, "ServiceAreas", travTypeName, travDir, cutoffs=minutes,
                                          output_type="POLYGONS", polygon_detail="STANDARD",
                                          geometry_at_overlaps="DISSOLVE", #  "DISSOLVE",  # "SPLIT",  # "OVERLAP"
                                          geometry_at_cutoffs="RINGS",
@@ -251,13 +244,74 @@ def networkTravelToNearest(net, facil, outSA, minutes=list(range(5, 121, 5)),
    return outSA
 
 
+def adjustCatchments(inLayer, rasterize_id, outLayer, roadMask, finalMask):
+
+   print("Adjusting catchments using road mask...")
+   arcpy.PolygonToRaster_conversion(inLayer, rasterize_id, 'tmp_rasterize', cellsize=roadMask)
+   print('Masking to roadMask...')
+   arcpy.sa.ExtractByMask('tmp_rasterize', roadMask).save('tmp_mask')
+
+   with arcpy.EnvManager(mask=finalMask, extent=finalMask):
+      print("Allocating by euclidean distance to final mask...")
+      arcpy.sa.EucAllocation('tmp_mask').save('tmp_alloc')
+      print('Converting raster to polygon feature class `' + outLayer + '`...')
+      arcpy.RasterToPolygon_conversion('tmp_alloc', outLayer, "NO_SIMPLIFY", 'Value', 'MULTIPLE_OUTER_PART')
+      arcpy.AlterField_management(outLayer, 'gridcode', rasterize_id, clear_field_alias=True)
+
+   print('Joining fields...')
+   jf1 = ['access', 'focal_src_table', 'focal_src_name', 'focal_join_name', 'focal_accgreen_acres']
+   jf = [a.name for a in arcpy.ListFields(inLayer) if a.name in jf1]
+   arcpy.JoinField_management(outLayer, rasterize_id, inLayer, rasterize_id, jf)
+
+   return outLayer
+
+
+def finalizeLayer(inLayer, outLayer, finalMask, roadMask=None, rasterize_value=None):
+
+   print('Finalizing layer ' + inLayer + '...')
+
+   if rasterize_value is not None:
+      # catchments: already have been processed. Just rasterize, and then apply final mask
+      print('Rasterizing field ' + rasterize_value + '...')
+      arcpy.PolygonToRaster_conversion(inLayer, rasterize_value, 'tmp_rasterize', cellsize=finalMask)
+      with arcpy.EnvManager(mask=finalMask, extent=finalMask):
+         arcpy.sa.ExtractByMask('tmp_rasterize', finalMask).save(outLayer + '_final')
+   else:
+      # other datasets: mask to roads, then allocate.
+      print('Masking to roadMask...')
+      arcpy.sa.ExtractByMask(inLayer, roadMask).save(outLayer)
+      arcpy.BuildPyramids_management(outLayer)
+      with arcpy.EnvManager(mask=finalMask, extent=finalMask):
+         print("Allocating by euclidean distance to final mask...")
+         arcpy.sa.EucAllocation(outLayer).save(outLayer + '_final')
+
+   arcpy.BuildPyramids_management(outLayer + '_final')
+   return outLayer + '_final'
+
+
+def reclassLayer(inLayer, outLayer, remap=arcpy.sa.RemapRange([[0, 20, 1], [20, 40, 2], [40, 60, 3], [60, 80, 4], [80, 100, 5]])):
+
+   print('Reclassifying ' + inLayer + '...')
+   arcpy.sa.Reclassify(inLayer, 'Value', remap).save(outLayer)
+   arcpy.BuildRasterAttributeTable_management(outLayer, 'OVERWRITE')
+   arcpy.AddField_management(outLayer, 'label', field_type="TEXT")
+   need_rng = [[1, "Very Low Need"], [2, "Low Need"], [3, "Moderate Need"], [4, "High Need"], [5, "Very High Need"]]
+   with arcpy.da.UpdateCursor(outLayer, ['Value', 'label']) as curs:
+      for i in curs:
+         val = [n[1] for n in need_rng if n[0] == i[0]][0]
+         i[1] = val
+         curs.updateRow(i)
+   arcpy.BuildPyramids_management(outLayer)
+
+
+
 def main():
 
    # HEADER
 
    # GDBs are created within analyses, in this folder
    basedir = r'E:\projects\rec_model\rec_model_processing\serviceAnalyses_NA'
-   projdir = os.path.join(basedir, 'recAnalyses_' + time.strftime('%Y%m%d'))
+   projdir = os.path.join(basedir, 'recAnalyses_20210506')  # time.strftime('%Y%m%d'))
    if not os.path.exists(projdir):
       print('Creating directory ' + projdir + '.')
       os.mkdir(projdir)
@@ -266,11 +320,19 @@ def main():
    rastTemplate = r'L:\David\projects\RCL_processing\RCL_processing.gdb\SnapRaster_albers_wgs84'
    # rastTemplate = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\census_blocks_populated_rast'
 
-   # boundary used in catchments for gap-filling
+   arcpy.env.outputCoordinateSystem = rastTemplate
+   arcpy.env.snapRaster = rastTemplate
+   arcpy.env.cellSize = rastTemplate
+   arcpy.env.extent = rastTemplate
+   arcpy.env.overwriteOutput = True
+
+   # boundary used in catchments for gap-filling, euclidean allocation
    bnd = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\landMask_studyArea'
-   # Populated area (Census blocks). Used as final clip for catchments after all processing is finished, stats are calculated.
-   # Do not use for gap filling, as it would not pick up secondary PPAs.
-   finalClip = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\census_blocks_populated_roadClip'
+   # RoadClip is used to adjust service layers, prior to euclidean allocation.
+   roadClip = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_qtrMileBuff'
+   roadMask = roadClip + '_rast'
+   # This is the FINAL mask to Virginia. Used as a euclidean allocation mask for non-catchment layers.
+   VAMask = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\jurisbnd_mask'
 
    # population and impervious rasters
    popRast = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_OSM_2021_blkMask'
@@ -279,7 +341,6 @@ def main():
    # Network
    net = r'E:\projects\OSM\network\OSM_RoadsNet_Albers.gdb\RoadsNet\RoadsNet_ND'
    arcpy.env.outputCoordinateSystem = net
-   arcpy.env.overwriteOutput = True
 
    # Master access point layers
    ppa_pt0 = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb\access_points_t_lnd_20210428'
@@ -291,168 +352,131 @@ def main():
 
    # END HEADER
 
-   # TESTING ONLY
-   # Note: setting extent can mess with cleaning up edges of service catchments; don't use it for regular analysis.
-   # arcpy.env.extent = r'E:\projects\rec_model\rec_model_processing\serviceAreas_testing\DEMO_202104.gdb\PPA_demo_available_area'
-   # arcpy.env.extent = r'E:\projects\rec_model\rec_model.gdb\ES_testarea'
-   # arcpy.env.extent = r'E:\projects\rec_model\rec_model.gdb\waterAccess_testArea'
-   # END TESTING
-
 
    ### Water access
    outGDB = os.path.join(projdir, 'recAnalyses_waterAccess.gdb')
    make_gdb(outGDB)
    arcpy.env.workspace = outGDB
-   facil = arcpy.Select_analysis(aqua_pt0, os.path.basename(aqua_pt0))[0]
    facil_group = 'group_id'
+
+   # Copy access points with 'identicals' removed
+   facil = arcpy.Select_analysis(aqua_pt0, os.path.basename(aqua_pt0))[0]
    arcpy.DeleteIdentical_management(facil, ["Shape", facil_group], "5 Meters")  # To reduce number of SAs
-   
-   ## Service areas
-   m = [30]
-   outSA = 'servArea_waterAccess_30min'
-   networkServiceAreas(net, facil, facil_group, outSA, minutes=m, rastTemplate=rastTemplate)
 
    ## Catchments
-   m = 30
-   outSA = 'servCat_waterAccess_' + str(m) + 'min'
-   networkCatchments(net, facil, facil_group, outSA, bnd, minutes=m)
-   servCatStats(outSA, 'servCat_' + facil_group, popRast)
-   servCatPressureAq(outSA)
-   print('Clipping catchments to populated areas...')
-   arcpy.PairwiseIntersect_analysis([outSA, finalClip], outSA + '_final')
-   # arcpy.DeleteField_management(outSA + '_final', ['FID_' + os.path.basename(finalClip), 'FID_' + os.path.basename(outSA)])
+   outSA = 'servCat_waterAccess_30min'
+   if not arcpy.Exists(outSA):
+      networkCatchments(net, facil, facil_group, outSA, boundary=bnd, minutes=30)
+      # update: adjust here (clip to roads + euclidean allocation, convert back to polygon)
+      adjustCatchments(outSA, 'servCat_' + facil_group, outSA + '_adjust', roadMask, bnd)
+      servCatStats(outSA + '_adjust', 'servCat_' + facil_group, popRast)
+      servCatPressure(outSA + '_adjust', fldPop="pop_total", fldScore="access", per=10000)
+   final = finalizeLayer(outSA + '_adjust', 'aqRecPres', VAMask, rasterize_value='rec_pressure')
+   reclassLayer(final, final + '_rcl', arcpy.sa.RemapRange([[0, 20, 1], [20, 40, 2], [40, 60, 3], [60, 80, 4], [80, 100, 5]]))
 
    ## Travel time 
    # 105 minutes is enough to cover entire study area
    # Grouping is not used for Travel time to nearest.
    outSA = 'travelTime_waterAccess'
-   networkTravelToNearest(net, facil, outSA, minutes=list(range(5, 106, 5)), rastTemplate=rastTemplate)
-   # coulddo: manual adjust using SA-overlap 30-minute raster
-   # with arcpy.EnvManager(extent=outSA + '_rast'):
-   #    tt = outSA + '_rast'
-   #    sarast = 'servArea_waterAccess_30min_ct'
-   #    # adjust areas <=30 min from SA
-   #    arcpy.sa.SetNull(sarast, 30, "Value = 0").save('tmp_lt30')
-   #    arcpy.sa.ExtractByMask(tt, 'tmp_lt30').save('tmp_tt0')
-   #    arcpy.sa.Con('tmp_tt0', 30, 'tmp_tt0', "Value > 30").save('tmp_tt1')
-   #    # adjust areas >30 min from SA
-   #    arcpy.sa.SetNull(sarast, 35, "Value > 0").save('tmp_gt30')
-   #    arcpy.sa.ExtractByMask(tt, 'tmp_gt30').save('tmp_tt0')
-   #    arcpy.sa.Con('tmp_tt0', 35, 'tmp_tt0', "Value <= 30").save('tmp_tt2')
-   #    # Combine
-   #    arcpy.sa.CellStatistics(['tmp_tt1', 'tmp_tt2'], "MAXIMUM").save(tt + '_adj')
-   #    arcpy.BuildPyramids_management(tt + '_adj')
+   if not arcpy.Exists(outSA):
+      networkTravelToNearest(net, facil, outSA, minutes=list(range(5, 106, 5)), rastTemplate=rastTemplate)
+   final = finalizeLayer(outSA + '_rast', 'aqProx', VAMask, roadMask)
+   reclassLayer(final, final + '_rcl', arcpy.sa.RemapRange([[0, 15, 1], [15, 25, 2], [25, 40, 3], [40, 60, 4], [60, 100000, 5]]))
 
-   ## Overlap by-activity, aquatics. 30 minute limit.
-   m = 30
-   out = 'servedArea_waterAccess_activities_' + str(m) + 'min'
-   # Get service areas layer
-   sas = 'servArea_waterAccess_30min'
+   ## Service areas
+   outSA = 'servArea_waterAccess_30min'
+   if not arcpy.Exists(outSA):
+      networkServiceAreas(net, facil, facil_group, outSA, minutes=[30], rastTemplate=rastTemplate)
+   final = finalizeLayer(outSA + '_ct', 'aqAccOpts', VAMask, roadMask)
+   reclassLayer(final, final + '_rcl', arcpy.sa.RemapRange([[0, 0.5, 5], [0.5, 5, 4], [5, 10, 3], [10, 20, 2], [20, 100000, 1]]))
 
-   # Loop over facility types
-   typs = ['a_wct', 'a_fsh', 'a_swm']
-   for t in typs:
-      print(t)
-      group_ids = list(set([str(a[0]) for a in arcpy.da.SearchCursor(aqua_pt0, ['group_id', t]) if a[1] == 1]))
-      arcpy.Select_analysis(sas, 'tmp_sa', "group_id IN (" + ",".join(group_ids) + ")")
-      arcpy.CalculateField_management('tmp_sa', 'rast', 1, field_type="SHORT")
-      arcpy.PolygonToRaster_conversion('tmp_sa', 'rast', 'tmp_' + t, "CELL_CENTER", cellsize=rastTemplate)
-   # Sum rasters
-   rls = ['tmp_' + a for a in typs]
-   with arcpy.EnvManager(outputCoordinateSystem=rastTemplate, snapRaster=rastTemplate, cellSize=rastTemplate,
-                         mask=rastTemplate):
-      arcpy.sa.CellStatistics(rls, 'SUM').save('tmp_rast')
-      arcpy.sa.Con(arcpy.sa.IsNull('tmp_rast'), 0, 'tmp_rast').save(out + '_ct')
-   arcpy.Delete_management('tmp_rast')
-   arcpy.BuildPyramidsandStatistics_management(arcpy.env.workspace)
-   
-   # Clean up, generate final masked rasters
+
+   # Overlap by-activity, aquatics. 30 minute limit.
+   outSA = 'servedArea_waterAccess_activities_30min_ct'
+   if not arcpy.Exists(outSA):
+      # Get service areas layer
+      sas = 'servArea_waterAccess_30min'
+
+      # Loop over facility types
+      typs = ['a_wct', 'a_fsh', 'a_swm']
+      for t in typs:
+         print(t)
+         group_ids = list(set([str(a[0]) for a in arcpy.da.SearchCursor(aqua_pt0, ['group_id', t]) if a[1] == 1]))
+         arcpy.Select_analysis(sas, 'tmp_sa', "group_id IN (" + ",".join(group_ids) + ")")
+         arcpy.CalculateField_management('tmp_sa', 'rast', 1, field_type="SHORT")
+         with arcpy.EnvManager(outputCoordinateSystem=rastTemplate, snapRaster=rastTemplate, cellSize=rastTemplate, extent=rastTemplate):
+            arcpy.PolygonToRaster_conversion('tmp_sa', 'rast', 'tmp_' + t, "CELL_CENTER", cellsize=rastTemplate)
+      # Sum rasters
+      rls = ['tmp_' + a for a in typs]
+      with arcpy.EnvManager(outputCoordinateSystem=rastTemplate, snapRaster=rastTemplate, cellSize=rastTemplate, extent=rastTemplate, mask=rastTemplate):
+         arcpy.sa.CellStatistics(rls, 'SUM').save('tmp_rast')
+         arcpy.sa.Con(arcpy.sa.IsNull('tmp_rast'), 0, 'tmp_rast').save(outSA)
+   final = finalizeLayer(outSA, 'aqActOpts', VAMask, roadMask)
+   reclassLayer(final, final + '_rcl', arcpy.sa.RemapRange([[0, 0.5, 5], [0.5, 1, 4], [1, 2, 3], [2, 3, 2]]))  # note: no Very Low class for this.
+
+   # Clean up
    arcpy.Delete_management(arcpy.ListFeatureClasses("tmp_*") + arcpy.ListRasters("tmp_*") + arcpy.ListTables("tmp_*"))
-   ls = arcpy.ListRasters("*_ct") + arcpy.ListRasters("_rast")
-   for i in ls:
-      arcpy.sa.ExtractByMask(i, finalClip + '_rast').save(i + '_final')
-   arcpy.BuildPyramidsandStatistics_management(arcpy.env.workspace)
-   
+
 
    ### PPAs
    outGDB = os.path.join(projdir, 'recAnalyses_PPA.gdb')
    make_gdb(outGDB)
    arcpy.env.workspace = outGDB
    facil_group = 'ppa_group_id'
-   # Make a copy with 'identicals' removed/
+
+   # Copy access points with 'identicals' removed
    ppa_pt = arcpy.Select_analysis(ppa_pt0, os.path.basename(ppa_pt0))[0]
-   arcpy.DeleteIdentical_management(ppa_pt, ["Shape", facil_group], "5 Meters")  # To reduce number of SAs
+   arcpy.DeleteIdentical_management(ppa_pt, ["Shape", facil_group], "5 Meters")  # To reduce number of SA
+
+   ## Catchments
+   # PPA (25 acres)
+   outSA = 'servCat_PPA_25ac_30min'
+   if not arcpy.Exists(outSA):
+      # Select secondary PPA
+      ppa = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb\public_lands_final_accessAreas'
+      sec_ppa = arcpy.Select_analysis(ppa, 'secPPA', where_clause="accgreen_acres > 0 AND accgreen_acres < 25")[0]
+      arcpy.AlterField_management(sec_ppa, 'access', 'ppa_access', clear_field_alias=True)  # change field name to avoid conflict w/same field in catchments.
+      # run catchments
+      facil = arcpy.Select_analysis(ppa_pt, os.path.basename(ppa_pt) + '_25ac', where_clause="accgreen_acres >= 25")[0]
+      networkCatchments(net, facil, facil_group, outSA, boundary=roadClip, minutes=30)
+      # update: adjust catchments here
+      adjustCatchments(outSA, 'servCat_' + facil_group, outSA + '_adjust', roadMask, bnd)
+      servCatStats(outSA + '_adjust', 'servCat_' + facil_group, popRast, sec_ppa, impRast)
+      agapt(outSA + '_adjust')
+      servCatPressure(outSA + '_adjust', fldPop="pop_total", fldScore="accgreen_acres", per=100)
+   final = finalizeLayer(outSA + '_adjust', 'teRecPres', VAMask, rasterize_value='rec_pressure')
+   reclassLayer(final, final + '_rcl', arcpy.sa.RemapRange([[0, 20, 1], [20, 40, 2], [40, 60, 3], [60, 80, 4], [80, 100, 5]]))
+
+   # Travel time to nearest (5 acres)
+   outSA = 'travelTime_PPA_5ac'
+   if not arcpy.Exists(outSA):
+      facil = arcpy.Select_analysis(ppa_pt, os.path.basename(ppa_pt) + '_5ac', where_clause="accgreen_acres >= 5")[0]
+      networkTravelToNearest(net, facil, outSA, minutes=list(range(5, 106, 5)), rastTemplate=rastTemplate)
+   final = finalizeLayer(outSA + '_rast', 'teProx', VAMask, roadMask)
+   reclassLayer(final, final + '_rcl', arcpy.sa.RemapRange([[0, 15, 1], [15, 25, 2], [25, 40, 3], [40, 60, 4], [60, 100000, 5]]))
 
    # Service Areas
    # PPA (100 acres)
-   facil = arcpy.Select_analysis(ppa_pt, os.path.basename(ppa_pt) + '_100ac', where_clause="accgreen_acres >= 100")[0]
    outSA = 'servArea_PPA_100ac_30min'
-   networkServiceAreas(net, facil, facil_group, outSA, minutes=[30], rastTemplate=rastTemplate)
+   if not arcpy.Exists(outSA):
+      facil = arcpy.Select_analysis(ppa_pt, os.path.basename(ppa_pt) + '_100ac', where_clause="accgreen_acres >= 100")[0]
+      networkServiceAreas(net, facil, facil_group, outSA, minutes=[30], rastTemplate=rastTemplate)
+   final = finalizeLayer(outSA + '_ct', 'teLocOpts', VAMask, roadMask)
+   reclassLayer(final, final + '_rcl', arcpy.sa.RemapRange([[0, 0.5, 5], [0.5, 5, 4], [5, 10, 3], [10, 20, 2], [20, 100000, 1]]))
+
    # PPA (600 acres)
-   facil = arcpy.Select_analysis(ppa_pt, os.path.basename(ppa_pt) + '_600ac', where_clause="accgreen_acres >= 600")[0]
    outSA = 'servArea_PPA_600ac_60min'
-   networkServiceAreas(net, facil, facil_group, outSA, minutes=[60], rastTemplate=rastTemplate)
-   
-   ## Catchments
-   # PPA (25 acres)
-   m = 30
-   # Select secondary PPA
-   ppa = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb\public_lands_final_accessAreas'
-   sec_ppa = arcpy.Select_analysis(ppa, 'secPPA', where_clause="accgreen_acres > 0 AND accgreen_acres < 25")[0]
-   # run catchments
-   facil = arcpy.Select_analysis(ppa_pt, os.path.basename(ppa_pt) + '_25ac', where_clause="accgreen_acres >= 25")[0]
-   outSA = 'servCat_PPA_25ac_' + str(m) + 'min'
-   networkCatchments(net, facil, facil_group, outSA, bnd, minutes=m)
-   servCatStats(outSA, 'servCat_' + facil_group, popRast, sec_ppa, impRast)
-   servCatPressurePPA(outSA)
-   # Final clip
-   arcpy.PairwiseIntersect_analysis([outSA, finalClip], outSA + '_final')
-   # arcpy.DeleteField_management(outSA + '_final', ['FID_' + os.path.basename(finalClip), 'FID_' + os.path.basename(outSA)])
+   if not arcpy.Exists(outSA):
+      facil = arcpy.Select_analysis(ppa_pt, os.path.basename(ppa_pt) + '_600ac', where_clause="accgreen_acres >= 600")[0]
+      networkServiceAreas(net, facil, facil_group, outSA, minutes=[60], rastTemplate=rastTemplate)
+   final = finalizeLayer(outSA + '_ct', 'teRegOpts', VAMask, roadMask)
+   reclassLayer(final, final + '_rcl', arcpy.sa.RemapRange([[0, 0.5, 5], [0.5, 5, 4], [5, 10, 3], [10, 20, 2], [20, 100000, 1]]))
 
-   # Travel time to nearest (5 acres)
-   facil = arcpy.Select_analysis(ppa_pt, os.path.basename(ppa_pt) + '_5ac', where_clause="accgreen_acres >= 5")[0]
-   outSA = 'travelTime_PPA_5ac'
-   networkTravelToNearest(net, facil, outSA, minutes=list(range(5, 106, 5)), rastTemplate=rastTemplate)
-
-   # coulddo: manual adjust using SA-overlap 30-minute raster
-   # with arcpy.EnvManager(extent=outSA + '_rast'):
-   #    tt = outSA + '_rast'
-   #    sarast = 'servArea_PPA_100ac_30min_ct'
-   #    # ONLY adjust where TT is less than SA for PPAs, since SA used a more exclusive set of PPAs
-   #    arcpy.sa.SetNull(sarast, 30, "Value = 0").save('tmp_lt30')
-   #    arcpy.sa.ExtractByMask(tt, 'tmp_lt30').save('tmp_tt0')
-   #    arcpy.sa.Con('tmp_tt0', 30, 'tmp_tt0', "Value > 30").save('tmp_tt1')
-   #    arcpy.sa.CellStatistics([tt, 'tmp_tt1'], "MINIMUM").save(tt + '_adj')
-   #    arcpy.BuildPyramids_management(tt + '_adj')
-   
-   # Clean up, generate final masked rasters
+   # Clean up
    arcpy.Delete_management(arcpy.ListFeatureClasses("tmp_*") + arcpy.ListRasters("tmp_*") + arcpy.ListTables("tmp_*"))
-   ls = arcpy.ListRasters("*_ct") + arcpy.ListRasters("_rast")
-   for i in ls:
-      arcpy.sa.ExtractByMask(i, finalClip + '_rast').save(i + '_final')
-   arcpy.BuildPyramidsandStatistics_management(arcpy.env.workspace)
 
 
 if __name__ == '__main__':
    main()
 
-
-
-########
-# BELOW IS DEPRECATED: re-use 30-min service areas.
-# for a in typs:
-#    print(a)
-#    facil = arcpy.Select_analysis(aqua_pt0, os.path.basename(aqua_pt0) + '_' + a, a + ' = 1')[0]
-#    outSA = 'servedArea_waterAccess_' + a
-#    # NOTE: To better align with travel time to nearest, a cutoff ABOVE 30 minutes is added.
-#    networkTravelToNearest(net, facil, outSA, minutes=[30, 35], rastTemplate=None)
-#
-# # Count overlapping and convert to raster
-# out = 'servedArea_waterAccess_activities_30min'
-# arcpy.CountOverlappingFeatures_analysis([arcpy.MakeFeatureLayer_management('servedArea_waterAccess_' + a, where_clause="minutes <= 30") for a in typs], out, 1)
-# arcpy.AlterField_management(out, 'COUNT_FC', 'water_activity_ct', clear_field_alias=True)
-# with arcpy.EnvManager(outputCoordinateSystem=rastTemplate, snapRaster=rastTemplate, cellSize=rastTemplate, mask=rastTemplate):
-#    arcpy.PolygonToRaster_conversion(out, 'water_activity_ct', 'tmp_rast', cellsize=rastTemplate)
-#    arcpy.sa.Con(arcpy.sa.IsNull('tmp_rast'), 0, 'tmp_rast').save(out + '_ct')
-# arcpy.Delete_management('tmp_rast')
-# arcpy.BuildPyramids_management(out + '_ct')
+# end
