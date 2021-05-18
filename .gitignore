@@ -7,3 +7,4 @@ sql/upload_ogr.txt
 venv*
 data/templates.gdb
 recycling.py
+/docs/feedback/

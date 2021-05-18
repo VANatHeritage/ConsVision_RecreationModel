@@ -4,6 +4,8 @@ Created by: David Bucklin
 Created on: 2021-01
 
 Processes for handling recreation feature datasets (NOT access points). Includes full workflow for PPAs, trails QA/QC.
+
+Due to many decision points (e.g. queries) requiring manual editing, this script is set up for interactive usage only.
 """
 
 from Helper import *

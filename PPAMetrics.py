@@ -3,7 +3,9 @@ PPAMetrics
 Created by: David Bucklin
 Created on: 2021-01
 
-Processes for adding impervious area percentages, available area, and available greenspace for PPAs.
+Processes for calculating available area and available greenspace attributes for PPAs.
+
+Pre-requisite: PPA polygons feature class, generated in the RecFeatures.py script.
 """
 
 from Helper import *
@@ -119,11 +121,6 @@ def addMetrics_lc(feats, feats_id, lc, imp=['21', '22'], water=[]):
 
 # Geodatabase for recreation datasets
 gdb = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb'
-roads0 = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422' # r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\all_subset'
-# Base geodatabase (NHD_Merged.gdb) are layers including all states within 50-mile buffer.
-nhd_flow = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_Flowline'
-nhd_areawtrb = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss'
-nhd_wtrb = r'L:\David\GIS_data\NHD\NHD_Merged.gdb\NHDWaterbody'  # this can be used for lakes-only analyses
 boundary = r'L:\David\projects\RCL_processing\RCL_processing.gdb\VA_Buff50mi_wgs84'
 
 # land cover, impervious, canopy

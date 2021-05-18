@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Created: 2018
-Last Updated: 2018-09-07
+Last Updated: 2021-05-18
 ArcGIS version: ArcGIS Pro
-Python version: Python 3.5.3
+Python version: Python 3.x
 Author: David Bucklin
 
 Collection of helper functions used by

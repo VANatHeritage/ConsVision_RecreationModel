@@ -92,20 +92,22 @@ Aquatic features were used for:
   
 ## Recreation Data processing
 
-### Pre-processing
+### Polygon/line recreation features
 
-Some polygon and line datasets are considered **Recreational Features**, and generally required some pre-processing prior to use in the the model. These steps are included in the script file [RecFeatures.py](../RecFeatures.py).
-
-#### Public lands data (PPA) processing
+Polygon and line datasets generally required some pre-processing prior to use in the the model. These steps are included in the script file [RecFeatures.py](../RecFeatures.py).
 
 Publicly-accessible Parks and Protected Areas (PPA) were combined from the two original protected areas datasets (VA Conservation Lands database and the Protected Areas Database). Using designation type attributes, polygons were categorized as either parks (1) or other protected areas (2). They were then planarized (flattened), dissolving boundaries between overlapping PPAs of the same category. Polygons in the dataset are attributed with unique **group_id**, and assigned the name and designation of their largest source polygon from the original dataset. The final dataset (**public_lands_final**) is the starting point for all subsequent PPA analyses. 
 
-For each polygon, the following attributes were calculated (all area values are calculated in acres):
+#### PPA attribution
+
+For each polygon in **public_lands_final**, the following attributes were calculated (all area values are calculated in acres):
 
   - Total area
   - Greenspace area
   - Available area
   - Available greenspace area
+
+PPA attribution is included in the script file [PPAMetrics.py](../PPAMetrics.py)
 
 ### Standardizing input datasets
 
@@ -137,4 +139,4 @@ The script file [AccessPoints.py](../AccessPoints.py)  was used to combine all r
 
 ------
 
-*Last updated: 2021-04-27*
+*Last updated: 2021-05-18*

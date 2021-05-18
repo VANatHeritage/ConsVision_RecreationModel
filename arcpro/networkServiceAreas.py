@@ -1,15 +1,14 @@
-'''
+"""
 networkServiceAreas
+Created by: David Bucklin
+Created on: 2021-04-21
+ArcGIS version: ArcGIS Pro
+Python version: Python 3.x
 
 Network Analyst-based processes for all recreation model analyses. Includes functions for:
    - Service areas by facility group, counting overlaps
    - Catchments (non-overlapping service areas) by facility group
    - Travel time to nearest facility
-
-Created: 2021-04-21
-ArcGIS version: ArcGIS Pro
-Python version: Python 3.6.6
-Author: David Bucklin
 
 General usage notes:
 - For service areas and catchments, one service area or catchment is developed for each unique value in facil_group.
@@ -21,9 +20,8 @@ overlaps can be very slow for these cases.
 - In networkTravelToNearest, increasing the number of breaks will greatly increase processing time, especially if the
 upper time limit is high.
 - Tried out exclude_sources_from_polygon_generation=["Roads_Hwy"]. When using this and generating polygons with
-geometry_at_overlap="SPLIT", there are errors in some polygons (polygon have extreme geometry errors). Because of this,
-abandoned use of this option.
-'''
+geometry_at_overlap="SPLIT", there are bad errors in some polygons. Because of this, abandoned use of this option.
+"""
 
 # from Helper import *  # python command prompt: propy.bat E:\git\ConsVision_RecreationModel\arcpro\networkServiceAreas.py
 from arcpro.Helper import *   # for interactive usage
@@ -311,7 +309,9 @@ def main():
 
    # GDBs are created within analyses, in this folder
    basedir = r'E:\projects\rec_model\rec_model_processing\serviceAnalyses_NA'
-   projdir = os.path.join(basedir, 'recAnalyses_20210506')  # time.strftime('%Y%m%d'))
+   # projdir = os.path.join(basedir, 'recAnalyses_20210506')
+   projdir = os.path.join(basedir, 'recAnalyses_' + Ymd())
+
    if not os.path.exists(projdir):
       print('Creating directory ' + projdir + '.')
       os.mkdir(projdir)
@@ -326,7 +326,7 @@ def main():
    arcpy.env.extent = rastTemplate
    arcpy.env.overwriteOutput = True
 
-   # boundary used in catchments for gap-filling, euclidean allocation
+   # Boundary used in catchments for gap-filling, euclidean allocation for catchments
    bnd = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\landMask_studyArea'
    # RoadClip is used to adjust service layers, prior to euclidean allocation.
    roadClip = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_qtrMileBuff'
