@@ -274,7 +274,7 @@ gdb = r'E:\projects\rec_model\rec_datasets\rec_datasets_v2021.gdb'
 
 # public access parks/protected areas
 # TODO: make sure to make new prepped PPAs, when public_lands_final is updated.
-ppa = gdb + os.sep + 'prep_public_lands_final_20210426'  # 20210324'
+ppa = gdb + os.sep + 'prep_public_lands_final_20210426'
 ppa_nm = [a[0] for a in arcpy.da.SearchCursor(ppa, 'src_table')][0]
 
 # Roads and NHD data

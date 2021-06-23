@@ -66,13 +66,13 @@ Water access datasets (various sources):
 ### Road/path centerline data
 
 From OpenStreetMap: 
-  - roads data from [Geofabrik](http://download.geofabrik.de/north-america/us.html), downloaded as shapefile for each state in the study area.
+  - roads data from [Geofabrik](http://download.geofabrik.de/north-america/us.html), downloaded as shapefiles for each state in the study area.
 
 Road/path segments were assigned a speed (SPEED_MPH) and travel time in minutes (TT_MIN). A Network Dataset was created from this dataset, using TT_MIN as the accumulation attribute. This dataset was used for all travel analyses.
 
 Road/path data were also used for:
   - calculation of available area within PPAs
-  - placement of 'generated' access points for recreation features
+  - placement of 'generated' access points for recreation features not already associated with an access point
 
 ### Aquatic features 
 
@@ -88,7 +88,7 @@ From the National Hydrography Dataset (NHD), high resolution (1:24,000):
 Aquatic features were used for:
 
 - erasing open water areas from PPAs (NHD_AreaWaterbody only)
-- QA/QC of water access points: water access points needed to be within 0.25 miles of an aquatic feature
+- QA/QC of water access points: water access points needed to be within 0.25 miles of an aquatic feature to be used in the model
   
 ## Recreation Data processing
 
@@ -117,7 +117,7 @@ Each recreation dataset was run through the [PrepRecDataset](../PrepRecDataset.p
 
 Six fields describing the types of recreation available at the recreation feature were added, and attributed with 1 (access for that type) or 0 (no access for that type):
 
-- **a_wct** : watercraft (motorboat, kayak, canoe, etc.) access
+- **a_wct**: watercraft (motorboat, kayak, canoe, etc.) access
 - **a_fsh**: fishing access 
 - **a_swm**: swimming access
 - **a_gen**: unspecified water access

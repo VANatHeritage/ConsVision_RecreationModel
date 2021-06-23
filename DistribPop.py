@@ -273,7 +273,7 @@ def main():
    # feats = [r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss',
    #          r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final']
    # featBoundary = r'L:\David\projects\RCL_processing\RCL_processing.gdb\VA_Buff50mi_wgs84'
-   # inRaster = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_kdens'  # r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\Roads_kdens_250_noZero'
+   # inRaster = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_kdens'
    # popMask = 'population_mask_raster'
    # makePopMask_custom(feats, featBoundary, inRaster, popMask)
 
@@ -287,7 +287,7 @@ def main():
    fldPop = 'total_pop_clip'  # 'TotPop_clp'
    # inRoadDens = r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\Roads_kdens_250_noZero'  # r'H:\Working\RecMod\RecModProducts.gdb\Roads_kdens_250'
    inRoadDens = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_kdens'
-   outPop = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_OSM_2021_blkMask'  # r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
+   outPop = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2019'  # r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
    tmpDir = r'D:\scratch\raster'  # r'H:\Working\TMP'
 
    # Specify function to run

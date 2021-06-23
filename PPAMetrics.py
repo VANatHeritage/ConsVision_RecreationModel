@@ -190,9 +190,9 @@ addMetrics_accessAcres(publands_final, acc_lyr, "ptacc", "300 Feet")
 print('Calculating available, non-impervious acres...')
 # TOTAL ACCESSIBLE AREA (TRAILS+INTERNAL OSM+ACCESS POINTS). Uses already-created access features.
 arcpy.Merge_management([publands_final + '_osmacc', publands_final + '_trlacc', publands_final + '_ptacc'], 'tmp_merge')
-feats = addMetrics_accessAcres(publands_final, 'tmp_merge', fld_prefix="available")
+feats = addMetrics_accessAcres(publands_final, 'tmp_merge', fld_prefix="available")  # output is: publands_final + '_available'
 arcpy.JoinField_management(feats, 'FID_' + publands_final, publands_final, 'OBJECTID', feats_id)
-# coulddo: convert rdltrlacc to single-part?
+# coulddo: convert to single-part?
 addMetrics_nlcd(feats, feats_id, imperv, fld_prefix="impacc")
 # join metric back to original PPAs
 arcpy.JoinField_management(publands_final, feats_id, feats, feats_id, 'notimpacc_acres')

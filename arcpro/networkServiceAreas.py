@@ -335,7 +335,7 @@ def main():
    VAMask = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\jurisbnd_mask'
 
    # population and impervious rasters
-   popRast = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_OSM_2021_blkMask'
+   popRast = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2019'
    impRast = r'L:\David\GIS_data\NLCD\nlcd_2016\nlcd_2016ed_Impervious_albers.gdb\imperv_2016'
 
    # Network
