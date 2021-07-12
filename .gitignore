@@ -1,5 +1,6 @@
 # ignore compiled python
 *.pyc
+*.docx
 *_BAK.py
 info
 recycling/sql/upload_ogr.txt
