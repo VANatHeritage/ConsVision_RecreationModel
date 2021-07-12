@@ -9,7 +9,6 @@ Due to many decision points (e.g. queries) requiring manual editing, this script
 """
 
 from Helper import *
-from arcpro.Helper import *
 from PrepRecDataset import PrepRecDataset
 master_template = os.path.join(os.getcwd(), "data", "templates.gdb", "template_access")
 

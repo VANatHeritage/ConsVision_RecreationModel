@@ -9,7 +9,6 @@ Pre-requisite: PPA polygons feature class, generated in the RecFeatures.py scrip
 """
 
 from Helper import *
-from arcpro.Helper import *
 from PrepRecDataset import PrepRecDataset
 
 

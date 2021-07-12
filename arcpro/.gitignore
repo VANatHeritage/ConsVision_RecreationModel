@@ -1,5 +1,0 @@
-# ignore compiled python
-*.pyc
-*_temp.py
-/recycling/
-/pyt_summaries/

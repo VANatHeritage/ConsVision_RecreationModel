@@ -29,10 +29,11 @@ overlaps can be very slow for these cases.
 upper time limit is high.
 - Tried out exclude_sources_from_polygon_generation=["Roads_Hwy"]. When using this and generating polygons with
 geometry_at_overlap="SPLIT", there are bad errors in some polygons. Because of this, abandoned use of this option.
+
+To run in python command prompt: propy.bat E:\git\ConsVision_RecreationModel\arcpro\networkServiceAreas.py
 """
 
-# from Helper import *  # python command prompt: propy.bat E:\git\ConsVision_RecreationModel\arcpro\networkServiceAreas.py
-from arcpro.Helper import *   # for interactive usage
+from Helper import *
 arcpy.CheckOutExtension("network")
 
 # Default search criteria for OSM roads.

@@ -19,7 +19,6 @@ Functions include:
 """
 
 from Helper import *
-from arcpro.Helper import *
 import os
 import time
 import arcpy
