@@ -2,9 +2,11 @@
 *.pyc
 *_BAK.py
 info
-sql/upload_ogr.txt
+recycling/sql/upload_ogr.txt
 .idea*
 venv*
 data/templates.gdb
 recycling.py
 /docs/feedback/
+TODO
+recycling/

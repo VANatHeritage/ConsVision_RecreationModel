@@ -6,9 +6,17 @@ ArcGIS version: ArcGIS Pro
 Python version: Python 3.x
 
 Network Analyst-based processes for all recreation model analyses. Includes functions for:
-   - Service areas by facility group, counting overlaps
-   - Catchments (non-overlapping service areas) by facility group
-   - Travel time to nearest facility
+   - networkServiceAreas, Service areas by facility group, counting overlaps
+   - networkCatchments, Catchments (non-overlapping service areas) by facility group
+      - adjustCatchments, which fills in values outside a road mask using Euclidean Distance, and creates a
+         raster-masked and aligned version of the catchments
+   - networkTravelToNearest, Travel time to nearest facility
+Recreation Model workflow functions include:
+   - finalizeLayer, which creates final 'value' layers, filling in values outside a road mask using Euclidean Distance
+   - reclassLayer, which creates final 'score' layers, reclassifying 'value' layers into need classes (values 1-5)
+
+This script includes the full workflow for Recreation Model travel analyses, including creation of sub-component
+scores (by reclassification of original value rasters), and composite score (Recreation Need) layers.
 
 General usage notes:
 - For service areas and catchments, one service area or catchment is developed for each unique value in facil_group.
@@ -287,7 +295,8 @@ def finalizeLayer(inLayer, outLayer, finalMask, roadMask=None, rasterize_value=N
    return outLayer + '_final'
 
 
-def reclassLayer(inLayer, outLayer, remap=arcpy.sa.RemapRange([[0, 20, 1], [20, 40, 2], [40, 60, 3], [60, 80, 4], [80, 100, 5]])):
+def reclassLayer(inLayer, outLayer,
+                 remap=arcpy.sa.RemapRange([[0, 20, 1], [20, 40, 2], [40, 60, 3], [60, 80, 4], [80, 100, 5]])):
 
    print('Reclassifying ' + inLayer + '...')
    arcpy.sa.Reclassify(inLayer, 'Value', remap).save(outLayer)
@@ -417,6 +426,12 @@ def main():
    # Clean up
    arcpy.Delete_management(arcpy.ListFeatureClasses("tmp_*") + arcpy.ListRasters("tmp_*") + arcpy.ListTables("tmp_*"))
 
+   # COMPOSITE SCORE LAYER
+   rmv = RemapValue([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]])
+   wo = arcpy.sa.WOTable([["aqProx_final_rcl", 5, 'Value', rmv],  ["aqAccOpts_final_rcl", 20, 'Value', rmv],
+                 ["aqActOpts_final_rcl", 5, 'Value', rmv], ["aqRecPres_final_rcl", 70, 'Value', rmv]], [1, 9, 1])
+   arcpy.sa.WeightedOverlay(wo).save('AquaScore')
+
 
    ### PPAs
    outGDB = os.path.join(projdir, 'recAnalyses_PPA.gdb')
@@ -474,6 +489,12 @@ def main():
 
    # Clean up
    arcpy.Delete_management(arcpy.ListFeatureClasses("tmp_*") + arcpy.ListRasters("tmp_*") + arcpy.ListTables("tmp_*"))
+
+   # COMPOSITE SCORE LAYER
+   rmv = RemapValue([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]])
+   wo = arcpy.sa.WOTable([["teProx_final_rcl", 5, 'Value', rmv],  ["teLocOpts_final_rcl", 20, 'Value', rmv],
+                 ["teRegOpts_final_rcl", 5, 'Value', rmv], ["teRecPres_final_rcl", 70, 'Value', rmv]], [1, 9, 1])
+   arcpy.sa.WeightedOverlay(wo).save('TerrScore')
 
 
 if __name__ == '__main__':
