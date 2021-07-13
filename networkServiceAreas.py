@@ -2,8 +2,7 @@
 networkServiceAreas
 Created by: David Bucklin
 Created on: 2021-04-21
-ArcGIS version: ArcGIS Pro
-Python version: Python 3.x
+Version:  ArcGIS Pro / Python 3.x
 
 Network Analyst-based processes for all recreation model analyses. Includes functions for:
    - networkServiceAreas, Service areas by facility group, counting overlaps

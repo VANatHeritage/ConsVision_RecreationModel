@@ -2,6 +2,7 @@
 PrepRecDataset
 Created by: David Bucklin
 Created on: 2020-10
+Version:  ArcGIS Pro / Python 3.x
 
 Standardizes all recreation datasets for inclusion in the recreation model, outputs a new feature class. The following
 procedures are run:
@@ -16,6 +17,8 @@ procedures are run:
 
 This is the initial step prior to any other processing. After this, access and use fields should be further edited, to
 indicate the type of recreation access available, and whether to exclude certain features (`use` field).
+
+This script is set up for import into ArcGIS Pro as a script tool.
 """
 
 import arcpy

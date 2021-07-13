@@ -2,6 +2,7 @@
 RecFeatures
 Created by: David Bucklin
 Created on: 2021-01
+Version:  ArcGIS Pro / Python 3.x
 
 Processes for handling recreation feature datasets (NOT access points). Includes full workflow for PPAs, trails QA/QC.
 

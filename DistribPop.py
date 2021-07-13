@@ -1,23 +1,22 @@
-#--------------------------------------------------------------------------------------
-# DistribPop.py
-# Version:  ArcGIS 10.3.1 / Python 2.7.8
-# Creation Date: 2018-10-03
-# Last Edit: 2021-05-18
-# Creator:  Kirsten R. Hazler
-#
-# Summary:
-# Distributes population from census blocks or block groups to pixels assumed to be actually occupied, based on land
-# cover or road density. Yields a raster representing persons per pixel.
-#
-# Usage:
-# IMPORTANT NOTE: If blocks or other census units are clipped to a processing boundary, the population for the
-# remaining polygon fragments MUST be adjusted prior to running a population distribution function. Example:
-# If clipping results in 40% of a polygon's area remaining, the population value should be adjusted to 40% of
-# the original value.
-#--------------------------------------------------------------------------------------
+"""
+DistribPop
+Created by: Kirsten R. Hazler
+Created on: 2018-10-03
+Version:  ArcGIS Pro / Python 3.x
+Last Edit: 2021-05-18
+
+Summary:
+Distributes population from census blocks or block groups to pixels assumed to be actually occupied, based on land
+cover or road density. Yields a raster representing persons per pixel.
+
+Usage:
+IMPORTANT NOTE: If blocks or other census units are clipped to a processing boundary, the population for the
+remaining polygon fragments MUST be adjusted prior to running a population distribution function. Example:
+If clipping results in 40% of a polygon's area remaining, the population value should be adjusted to 40% of
+the original value.
+"""
 
 # Import Helper module and functions
-
 from Helper import *
 
 

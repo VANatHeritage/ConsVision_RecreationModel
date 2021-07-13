@@ -2,6 +2,7 @@
 PPAMetrics
 Created by: David Bucklin
 Created on: 2021-01
+Version:  ArcGIS Pro / Python 3.x
 
 Processes for calculating available area and available greenspace attributes for PPAs.
 
