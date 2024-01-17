@@ -38,7 +38,7 @@ def selectRecFeatures(pts, feats, join_dist):
 
 
 # Geodatabase for recreation datasets
-gdb = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb'
+gdb = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb'  # NOTE: previously used rec_datasets_working.gdb (i.e. for trails processing)
 roads0 = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422'  # r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\all_subset'
 # Base geodatabase (NHD_Merged.gdb) are layers including all states within 50-mile buffer.
 nhd_flow = r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_Flowline'

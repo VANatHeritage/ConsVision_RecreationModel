@@ -20,6 +20,34 @@ the original value.
 from Helper import *
 
 
+def MergeCensusBlocks(blockShpDir, outBlocks, boundary, VABlocks="tl_2020_51_tabblock20.shp"):
+   """
+   Merge block shapefiles from multiple states into a new feature class, subset to a given boundary.
+   :param blockShpDir: Directory holding individual state shapefiles with census blocks
+   :param outBlocks: output blocks feature class
+   :param boundary: polygon boundary; blocks intersecting this will be included in outBlocks
+   :param VABlocks: name of the shapefile for Virginia blocks
+   :return: outBlocks
+
+   Pre-requisite: state-level block shapefiles (with population attribute) downloaded from U.S. Census:
+   https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html
+   """
+   # Get list of shapefiles
+   inFC = blockShpDir + os.sep + VABlocks
+   with arcpy.EnvManager(workspace=blockShpDir):
+      appendFC = [blockShpDir + os.sep + a for a in arcpy.ListFeatureClasses() if a != os.path.basename(inFC)]
+   with arcpy.EnvManager(extent=boundary):
+      if not arcpy.Exists(outBlocks):
+         print('Creating merged feature class...')
+         arcpy.FeatureClassToFeatureClass_conversion(inFC, os.path.dirname(outBlocks), os.path.basename(outBlocks))
+         for i in appendFC:
+            print('Appending ' + i + '...')
+            lyr = arcpy.MakeFeatureLayer_management(i)
+            arcpy.SelectLayerByLocation_management(lyr, "INTERSECT", boundary)
+            arcpy.Append_management(lyr, outBlocks, "NO_TEST")
+   return outBlocks
+
+
 def DistribPop_nlcd(inBlocks, fldPop, inLandCover, inImpervious, inRoads, outPop, tmpDir):
    '''Distributes population from census blocks to developed pixels based on NLCD land cover, yielding a raster representing persons per pixel.
    inBlocks = input shapefile delineating census blocks.
@@ -259,34 +287,40 @@ def makePopMask_custom(feats, featBoundary, inRaster, outMask):
 def main():
 
    # Set up variables
-   arcpy.env.workspace = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb'
+   arcpy.env.workspace = r'D:\projects\rec_model\rec_model_processing\input_recmodel.gdb'
    arcpy.env.overwriteOutput = True
-   snap = r'L:\David\projects\RCL_processing\RCL_processing.gdb\SnapRaster_albers_wgs84'
+   snap = r'D:\projects\RCL\RCL_processing\RCL_processing.gdb\SnapRaster_albers_wgs84'
    arcpy.env.outputCoordinateSystem = snap
    arcpy.env.snapRaster = snap
    arcpy.env.cellSize = snap
    arcpy.env.extent = snap
 
+   # create a merged blocks feature class
+   blockShpDir = r'F:\David\GIS_data\US_CENSUS_TIGER\Census_block_pop\shapefiles\2020'
+   outBlocks = r'F:\David\GIS_data\US_CENSUS_TIGER\Census_block_pop\censusBlocks_2020.gdb\census_blocks'
+   boundary = r'D:\projects\RCL\RCL_processing\RCL_processing.gdb\VA_Buff50mi_wgs84'
+   MergeCensusBlocks(blockShpDir, outBlocks, boundary, VABlocks="tl_2020_51_tabblock20.shp")
+
    # Deprecated: using census blocks instead. Leaving code as example of custom mask.
    # Make population mask. Features indicate exclusion areas for poplation. They will be NoData in the PopMask.
-   # feats = [r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss',
-   #          r'E:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final']
-   # featBoundary = r'L:\David\projects\RCL_processing\RCL_processing.gdb\VA_Buff50mi_wgs84'
-   # inRaster = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_kdens'
+   # feats = [r'D:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\NHD_AreaWaterbody_diss',
+   #          r'D:\projects\rec_model\rec_datasets\rec_datasets_working.gdb\public_lands_final']
+   # featBoundary = r'D:\projects\RCL\RCL_processing\RCL_processing.gdb\VA_Buff50mi_wgs84'
+   # inRaster = r'D:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_kdens'
    # popMask = 'population_mask_raster'
    # makePopMask_custom(feats, featBoundary, inRaster, popMask)
 
    # Make population mask from census blocks (where population > 0)
-   blocks = r'L:\David\GIS_data\US_CENSUS_TIGER\Census_2010_block_pop\censusBlocks_2010.gdb\census_blocks'
-   ppa = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb\public_lands_final'
+   blocks = r'F:\David\GIS_data\US_CENSUS_TIGER\Census_block_pop\censusBlocks_2010.gdb\census_blocks'
+   ppa = r'D:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb\public_lands_final'
    popMask = makePopMask_blocks(blocks, snap, 'census_blocks_populated', erase=ppa)
 
    # Make population density raster
-   inBlocks = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\ACS_2015_2019_5yr_BG'  # r'H:\Working\ACS_2016\ACS_2016_5yr_BG.shp'
+   inBlocks = r'D:\projects\rec_model\rec_model_processing\input_recmodel.gdb\ACS_2015_2019_5yr_BG'  # r'H:\Working\ACS_2016\ACS_2016_5yr_BG.shp'
    fldPop = 'total_pop_clip'  # 'TotPop_clp'
-   # inRoadDens = r'L:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\Roads_kdens_250_noZero'  # r'H:\Working\RecMod\RecModProducts.gdb\Roads_kdens_250'
-   inRoadDens = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_kdens'
-   outPop = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2019'  # r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
+   # inRoadDens = r'F:\David\projects\RCL_processing\Tiger_2020\roads_proc.gdb\Roads_kdens_250_noZero'  # r'H:\Working\RecMod\RecModProducts.gdb\Roads_kdens_250'
+   inRoadDens = r'D:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_kdens'
+   outPop = r'D:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2019'  # r'H:\Working\RecMod\RecModProducts.gdb\distribPop_kdens'
    tmpDir = r'D:\scratch\raster'  # r'H:\Working\TMP'
 
    # Specify function to run

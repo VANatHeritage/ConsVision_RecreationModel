@@ -29,7 +29,7 @@ upper time limit is high.
 - Tried out exclude_sources_from_polygon_generation=["Roads_Hwy"]. When using this and generating polygons with
 geometry_at_overlap="SPLIT", there are bad errors in some polygons. Because of this, abandoned use of this option.
 
-To run in python command prompt: propy.bat E:\git\ConsVision_RecreationModel\arcpro\networkServiceAreas.py
+To run in python command prompt: propy.bat D:\git\ConsVision_RecreationModel\networkServiceAreas.py
 """
 
 from Helper import *
@@ -317,7 +317,7 @@ def main():
    # HEADER
 
    # GDBs are created within analyses, in this folder
-   basedir = r'E:\projects\rec_model\rec_model_processing\serviceAnalyses_NA'
+   basedir = r'D:\projects\rec_model\rec_model_processing\serviceAnalyses_NA'
    # projdir = os.path.join(basedir, 'recAnalyses_20210506')
    projdir = os.path.join(basedir, 'recAnalyses_' + Ymd())
 
@@ -326,8 +326,8 @@ def main():
       os.mkdir(projdir)
 
    # Set raster template for rasterized results
-   rastTemplate = r'L:\David\projects\RCL_processing\RCL_processing.gdb\SnapRaster_albers_wgs84'
-   # rastTemplate = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\census_blocks_populated_rast'
+   rastTemplate = r'D:\projects\RCL\RCL_processing\RCL_processing.gdb\SnapRaster_albers_wgs84'
+   # rastTemplate = r'D:\projects\rec_model\rec_model_processing\input_recmodel.gdb\census_blocks_populated_rast'
 
    arcpy.env.outputCoordinateSystem = rastTemplate
    arcpy.env.snapRaster = rastTemplate
@@ -336,28 +336,28 @@ def main():
    arcpy.env.overwriteOutput = True
 
    # Boundary used in catchments for gap-filling, euclidean allocation for catchments
-   bnd = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\landMask_studyArea'
+   bnd = r'D:\projects\rec_model\rec_model_processing\input_recmodel.gdb\landMask_studyArea'
    # RoadClip is used to adjust service layers, prior to euclidean allocation.
-   roadClip = r'E:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_qtrMileBuff'
+   roadClip = r'D:\projects\OSM\OSM_RoadsProc.gdb\OSM_Roads_20210422_qtrMileBuff'
    roadMask = roadClip + '_rast'
    # This is the FINAL mask to Virginia. Used as a euclidean allocation mask for non-catchment layers.
-   VAMask = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\jurisbnd_mask'
+   VAMask = r'D:\projects\rec_model\rec_model_processing\input_recmodel.gdb\jurisbnd_mask'
 
    # population and impervious rasters
-   popRast = r'E:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2019'
+   popRast = r'D:\projects\rec_model\rec_model_processing\input_recmodel.gdb\distribPop_kdens_2019'
    impRast = r'L:\David\GIS_data\NLCD\nlcd_2016\nlcd_2016ed_Impervious_albers.gdb\imperv_2016'
 
    # Network
-   net = r'E:\projects\OSM\network\OSM_RoadsNet_Albers.gdb\RoadsNet\RoadsNet_ND'
+   net = r'D:\projects\OSM\network\OSM_RoadsNet_Albers.gdb\RoadsNet\RoadsNet_ND'
    arcpy.env.outputCoordinateSystem = net
 
    # Master access point layers
-   ppa_pt0 = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb\access_points_t_lnd_20210428'
+   ppa_pt0 = r'D:\projects\rec_model\rec_model_processing\access_pts.gdb\access_points_t_lnd_20210428'
    # Add field accgreen_acres to access points (used in catchments)
    # arcpy.CalculateField_management(ppa_pt0, 'accgreen_acres', '!join_score!', field_type="DOUBLE")
 
    # Water access
-   aqua_pt0 = r'E:\projects\rec_model\rec_model_processing\access_pts.gdb\access_points_combined_20210428'
+   aqua_pt0 = r'D:\projects\rec_model\rec_model_processing\access_pts.gdb\access_points_combined_20210428'
 
    # END HEADER
 
@@ -448,7 +448,7 @@ def main():
    outSA = 'servCat_PPA_25ac_30min'
    if not arcpy.Exists(outSA):
       # Select secondary PPA
-      ppa = r'E:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb\public_lands_final_accessAreas'
+      ppa = r'D:\projects\rec_model\rec_datasets\rec_datasets_working_2021.gdb\public_lands_final_accessAreas'
       sec_ppa = arcpy.Select_analysis(ppa, 'secPPA', where_clause="accgreen_acres > 0 AND accgreen_acres < 25")[0]
       arcpy.AlterField_management(sec_ppa, 'access', 'ppa_access', clear_field_alias=True)  # change field name to avoid conflict w/same field in catchments.
       # run catchments
